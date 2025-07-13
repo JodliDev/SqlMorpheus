@@ -1,0 +1,31 @@
+{
+  "name": "sqlmigri",
+  "version": "1.0.0",
+  "author": "JodliDev",
+  "keywords": [],
+  "license": "MIT",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/my-ts-library"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/my-ts-library/issues"
+  },
+  "homepage": "https://github.com/your-username/my-ts-library#readme",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.13",
+    "better-sqlite3": "^12.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
