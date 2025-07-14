@@ -1,39 +1,45 @@
-import QueryBuilder from "../../tyque/src/lib/queryBuilder/QueryBuilder.ts";
+import {MigrationManager} from "./lib/MigrationManager.ts";
+import {DatabaseAccess} from "./lib/typings/DatabaseAccess.ts";
+import DatabaseInstructions from "./lib/typings/DatabaseInstructions.ts";
+import MigrationHistoryManager from "./lib/MigrationHistoryManager.ts";
 
-class TestClass {
-	public testString: string = "test"
-	public testNumber: number = 5
-	public testBoolean1: boolean = true
-	public testBoolean2: boolean = false
+export async function prepareMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
+	const mm = new MigrationManager(db, dbInstructions);
+	await mm.prepareMigration(overwriteExisting);
 }
 
-export async function greet(name: string) {
-	const tyQue = new QueryBuilder(
-		"sqlite",
-		async (query, values) => {
-			console.log(query, values)
-			return []
-		},
-		async (query, values) => {
-			console.log(query, values)
-			return 0
-		},
-		async (query, values) => {
-			console.log(query, values)
-			return 0
-		},
-		async (query, values) => {
-			console.log(query, values)
-			return 0
-		}
-	)
+export async function runPreparedMigrations(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
+	const migrationHistoryManager = new MigrationHistoryManager(dbInstructions.configPath);
 	
-	const r = await tyQue.select(TestClass, {a1: "testBoolean1", a2: "testBoolean2", a3: "testString", a4: "testNumber"})
-		.where(b => b.where("a1", "=", true).and().cond("testBoolean1", "=", false))
-		.orderBY("a3")
-		.build()
-	console.log(r)
+	const fromVersion = migrationHistoryManager.getLastHistoryVersion();
+	const toVersion = dbInstructions.version;
+	if(fromVersion == toVersion)
+		return;
 	
+	for(let i= fromVersion ? fromVersion + 1 : toVersion; i <= toVersion; ++i) {
+		const upChanges = migrationHistoryManager.getUpMigration(i);
+		console.log(upChanges);
+		await db.runMultipleWriteStatements(upChanges);
+		dbInstructions.version = i;
+	}
+	migrationHistoryManager.setLastHistoryVersion(toVersion);
+}
+
+export async function prepareAndRunMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
+	await prepareMigration(db, dbInstructions, overwriteExisting);
+	await runPreparedMigrations(db, dbInstructions);
+}
+
+export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstructions, toVersion: number) {
+	const migrationHistoryManager = new MigrationHistoryManager(dbInstructions.configPath);
+	const fromVersion = migrationHistoryManager.getLastHistoryVersion();
 	
-	return `Hello, ${name}!`;
+	console.log(`Rolling back from ${fromVersion} to ${toVersion}`);
+	for(let i= fromVersion - 1; i >= toVersion; --i) {
+		const upChanges = migrationHistoryManager.getDownMigration(i);
+		console.log(upChanges);
+		await db.runMultipleWriteStatements(upChanges);
+		dbInstructions.version = i;
+	}
+	migrationHistoryManager.setLastHistoryVersion(toVersion);
 }

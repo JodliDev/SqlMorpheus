@@ -1,19 +1,10 @@
 {
-//	"include": [
-////		"src",
-////		"tests"
-//	],
-	"exclude": [
-		"**/*.test.ts",
-		"node_modules"
+	"include": [
+		"src/**/*"
 	],
 	"compilerOptions": {
-		"module": "esnext",
-		"target": "esnext",
-//		"lib": [
-//			"esnext",
-//			"dom"
-//		],
+		"module": "commonjs",
+		"target": "ES2015",
 		"declaration": true,
 		"moduleResolution": "node",
 		"skipLibCheck": true,

@@ -23,10 +23,7 @@ export class MigrationManager {
 	private readonly migrationHistoryManager: MigrationHistoryManager;
 	private readonly dialect: DefaultSql;
 	
-	constructor(
-		db: DatabaseAccess,
-		dbInstructions: DatabaseInstructions
-	) {
+	constructor(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
 		switch(dbInstructions.dialect) {
 			case "Sqlite":
 				this.dialect = new SqliteDialect();
@@ -49,7 +46,6 @@ export class MigrationManager {
 		this.tableStructureGenerator = new TableStructureGenerator(dbInstructions, this.dialect);
 		this.migrationHistoryManager = new MigrationHistoryManager(this.dbInstructions.configPath);
 	}
-	
 	
 	public async getMigrateSql(): Promise<SqlChanges | null> {
 		if(this.dbInstructions.version <= 0)
@@ -118,43 +114,12 @@ export class MigrationManager {
 		
 		return changes;
 	}
-	
 	public async prepareMigration(overwriteExisting?: boolean): Promise<void> {
 		const changes = await this.getMigrateSql();
 		if(!changes)
 			return;
 		
 		this.migrationHistoryManager.createMigrationHistory(this.dbInstructions.version, changes, overwriteExisting);
-	}
-	public async runPreparedMigrations() {
-		const fromVersion = this.migrationHistoryManager.getLastHistoryVersion();
-		const toVersion = this.dbInstructions.version;
-		if(fromVersion == toVersion)
-			return;
-		
-		for(let i= fromVersion ? fromVersion + 1 : toVersion; i <= toVersion; ++i) {
-			const upChanges = this.migrationHistoryManager.getUpMigration(i);
-			console.log(upChanges);
-			await this.db.runMultipleWriteStatements(upChanges);
-			this.dbInstructions.version = i;
-		}
-		this.migrationHistoryManager.setLastHistoryVersion(toVersion);
-	}
-	public async prepareAndRunMigration(overwriteExisting?: boolean) {
-		await this.prepareMigration(overwriteExisting);
-		await this.runPreparedMigrations();
-	}
-	public async rollback(toVersion: number) {
-		const fromVersion = this.migrationHistoryManager.getLastHistoryVersion();
-		
-		console.log(`Rolling back from ${fromVersion} to ${toVersion}`);
-		for(let i= fromVersion - 1; i >= toVersion; --i) {
-			const upChanges = this.migrationHistoryManager.getDownMigration(i);
-			console.log(upChanges);
-			await this.db.runMultipleWriteStatements(upChanges);
-			this.dbInstructions.version = i;
-		}
-		this.migrationHistoryManager.setLastHistoryVersion(toVersion);
 	}
 	
 	private async createAndDropTables(): Promise<SqlChanges> {
