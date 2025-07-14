@@ -11,6 +11,7 @@ import {ForeignKeyInfo} from "./typings/ForeignKeyInfo.ts";
 import PostgresDialect from "./dialects/PostgresDialect.ts";
 import MsSqlDialect from "./dialects/MsSqlDialect.ts";
 import MySqlDialect from "./dialects/MySqlDialect.ts";
+import {Logger} from "./Logger.ts";
 
 
 export class MigrationManager {
@@ -53,18 +54,18 @@ export class MigrationManager {
 		
 		const fromVersion = this.migrationHistoryManager.getLastHistoryVersion();
 		if(fromVersion == 0) {
-			console.log(`Creating initial migration to version ${this.dbInstructions.version}`);
+			Logger.log(`Creating initial migration to version ${this.dbInstructions.version}`);
 			return this.createAndDropTables();
 		}
 		
 		if(fromVersion == this.dbInstructions.version) {
-			console.log("Version has not changed. No migrations needed.")
+			Logger.log("Version has not changed. No migrations needed.")
 			return null;
 		}
 		if(fromVersion > this.dbInstructions.version)
 			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${this.dbInstructions.version})`);
 		
-		console.log(`Creating migration SQL from version ${fromVersion} to ${this.dbInstructions.version}`);
+		Logger.log(`Creating migration SQL from version ${fromVersion} to ${this.dbInstructions.version}`);
 		
 		const db = this.db;
 		await db.createBackup?.(`from_${fromVersion}_to_${this.dbInstructions.version}`);
@@ -245,7 +246,7 @@ export class MigrationManager {
 				
 				//Check for removed foreign key:
 				if(!newForeignKey) {
-					console.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was removed!`);
+					Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was removed!`);
 					this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "removeForeignKey");
 					if(this.dialect.canAlterForeignKeys) {
 						changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn);
@@ -266,7 +267,7 @@ export class MigrationManager {
 						|| ((oldForeignKey.onUpdate ?? "NO ACTION") != (newForeignKey.onUpdate ?? "NO ACTION"))
 						|| ((oldForeignKey.onDelete ?? "NO ACTION") != (newForeignKey.onDelete ?? "NO ACTION"))
 					) {
-						console.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was changed!`);
+						Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was changed!`);
 						this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "alterForeignKey");
 						if(this.dialect.canAlterForeignKeys) {
 							changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn)
@@ -296,7 +297,7 @@ export class MigrationManager {
 					if(oldForeignKey)
 						continue;
 					
-					console.log(`Foreign key ${newForeignKey.toTable}.${newForeignKey.toColumn} to ${newForeignKey.toTable}.${newForeignKey.toColumn} is new!`);
+					Logger.log(`Foreign key ${newForeignKey.toTable}.${newForeignKey.toColumn} to ${newForeignKey.toTable}.${newForeignKey.toColumn} is new!`);
 					if(this.dialect.canAlterForeignKeys) {
 						changes.up += this.dialect.addForeignKey(
 							newForeignKey.toTable,
@@ -340,7 +341,7 @@ export class MigrationManager {
 			
 			//Search for changed primary key:
 			if(this.dialect.canInspectPrimaryKey && oldPrimaryKey != newPrimaryKey) {
-				console.log(`Primary key in ${tableName} was changed from ${oldPrimaryKey} to ${newPrimaryKey}!`);
+				Logger.log(`Primary key in ${tableName} was changed from ${oldPrimaryKey} to ${newPrimaryKey}!`);
 				this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "alterPrimaryKey");
 				if(this.dialect.canAlterPrimaryKey) {
 					if(oldPrimaryKey) {
@@ -410,66 +411,4 @@ export class MigrationManager {
 		}
 		return changes;
 	}
-	
-	// private async migrateDataFromBackup(backupDb: DatabaseAccess): Promise<SqlChanges> {
-	// 	const changes = {
-	// 		up: "",
-	// 		down: ""
-	// 	} satisfies SqlChanges;
-	//
-	// 	//Loop tables in order
-	// 	const migrationData = this.migrations.getMigrationData();
-	// 	for(const table of this.dbInstructions.tables) {
-	// 		const newTableName = table.name;
-	// 		if(!migrationData.hasOwnProperty(newTableName))
-	// 			continue;
-	//
-	// 		const migrationEntry = migrationData[table.name];
-	// 		const tableInfo = this.tableStructureGenerator.tables[table.name];
-	//
-	// 		if(!migrationEntry.recreate && !migrationEntry.recreateColumns.length)
-	// 			continue;
-	//
-	// 		console.log(`***** Recreating data into ${newTableName}`);
-	//
-	// 		const oldColumnList = !migrationEntry.recreate && migrationEntry.recreateColumns
-	// 			? migrationEntry.recreateColumns
-	// 			: backupDb.getColumnList(newTableName).map(info => info.name);
-	//
-	//
-	// 		//load all data needed from table:
-	// 		const selectSql = this.sqlGenerator.select(
-	// 			migrationEntry.oldTableName ?? table.name,
-	// 			oldColumnList
-	// 				.filter((columnName) => tableInfo.columns //only get columns that exist in the new version
-	// 					.find(entry => entry.name == this.migrations.getUpdatedColumnName(table.name, columnName))
-	// 				)
-	// 		);
-	// 		const data = await backupDb.runQuery(selectSql) as Record<string, never>[];
-	//
-	// 		if(!data.length)
-	// 			continue;
-	//
-	// 		// move columns with changed names:
-	// 		this.migrations.loopRenamedColumns(table.name, (oldColumnName, newColumnName) => {
-	// 			for(const entry of data) {
-	// 				if(!entry.hasOwnProperty(oldColumnName))
-	// 					continue;
-	// 				entry[newColumnName] = entry[oldColumnName];
-	// 				delete entry[oldColumnName];
-	// 			}
-	// 		})
-	//
-	// 		const query = this.sqlGenerator.insert(newTableName, data[0]); //the structure of entries is all the same, so we just use the first entry
-	//
-	// 		//insert data into new db:
-	// 		for(const entry of data) {
-	// 			const queryValues = Object.values(entry);
-	//
-	// 			console.log(query, queryValues);
-	// 			const statement = this.db.prepare(query);
-	// 			statement.run(queryValues);
-	// 		}
-	// 	}
-	// }
 }

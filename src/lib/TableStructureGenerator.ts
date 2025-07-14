@@ -5,6 +5,7 @@ import {getForeignKeys} from "./decorators/ForeignKeys.ts";
 import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
 import {TableStructure} from "./typings/TableStructure.ts";
 import DefaultSql from "./dialects/DefaultSql.ts";
+import {Logger} from "./Logger.ts";
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
@@ -21,7 +22,7 @@ export default class TableStructureGenerator {
 			
 			const primaryKey = getPrimaryKey(table);
 			if(!obj.hasOwnProperty(primaryKey)) {
-				console.log(`Skipping table ${table.name} because it has no primary key (Could not find: "${primaryKey}")`);
+				Logger.warn(`Skipping table ${table.name} because it has no primary key (Could not find: "${primaryKey}")`);
 				continue;
 			}
 			
@@ -63,7 +64,7 @@ export default class TableStructureGenerator {
 				case "function":
 					continue;
 				default:
-					console.log(`${obj.constructor.name}.${property} was skipped because its type is not supported (${typeof value})`);
+					Logger.warn(`${obj.constructor.name}.${property} was skipped because its type is not supported (${typeof value})`);
 					continue;
 			}
 			

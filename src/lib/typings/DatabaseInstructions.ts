@@ -5,9 +5,10 @@ import {SqlChanges} from "./SqlChanges.ts";
 
 export default interface DatabaseInstructions {
 	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres" | string;
+	tables: Class<BackendTable>[];
 	version: number;
 	configPath: string;
-	tables: Class<BackendTable>[];
+	loggerMode?: "silent" | "noLog" | "normal" | "debug";
 	
 	/**
 	 * Custom migrations that will run before any database changes are applied.
