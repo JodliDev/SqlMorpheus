@@ -1,6 +1,8 @@
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
 import {BackendTable, Class} from "../src/lib/typings/BackendTable";
 import Entity from "../src/lib/decorators/Entity";
+import {PublicMigrations} from "../src/lib/typings/Migrations";
+import {SqlChanges} from "../src/lib/typings/SqlChanges";
 
 @Entity("TestTable1", "id")
 export class TestTable1 {
@@ -38,4 +40,7 @@ export class TestInstructions implements DatabaseInstructions {
 		TestTable1,
 		TestTable2
 	];
+	preMigration(migrations: PublicMigrations, fromVersion: number, toVersion: number): SqlChanges | void {
+		migrations.alwaysAllow("alterPrimaryKey", "recreateTable");
+	}
 }

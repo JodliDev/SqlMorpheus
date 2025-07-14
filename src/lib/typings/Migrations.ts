@@ -1,17 +1,43 @@
 import {Class, BackendTable} from "./BackendTable.ts";
+import AllowedMigrations from "./AllowedMigrations.ts";
+import MigrationInstructions from "./MigrationInstructions.ts";
+import MigrationNotAllowedException from "../exceptions/NotAllowedException.ts";
 
 export class Migrations {
 	private readonly migrationData: Record<string, MigrationInstructions> = {};
+	private alwaysAllowed: AllowedMigrations = {};
 	
 	private getEntry(newTable: Class<BackendTable>): MigrationInstructions {
 		const newTableName = newTable.name;
 		if(!this.migrationData.hasOwnProperty(newTableName)) {
 			this.migrationData[newTableName] = {
 				recreate: false,
-				renamedColumns: []
+				renamedColumns: [],
+				allowedMigrations: {}
 			};
 		}
 		return this.migrationData[newTableName]
+	}
+	
+	alwaysAllow(... allowedMigrations: (keyof AllowedMigrations)[]) {
+		for(const key of allowedMigrations) {
+			this.alwaysAllowed[key] = true;
+		}
+	}
+	public allowMigration(version: number, table: Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
+		const entry = this.getEntry(table);
+		
+		if(!entry.allowedMigrations.hasOwnProperty(version))
+			entry.allowedMigrations[version] = {};
+		
+		for(const key of allowedMigrations) {
+			this.alwaysAllowed[key] = true;
+		}
+	}
+	
+	public throwIfNotAllowed(version: number, tableName: string, type: keyof AllowedMigrations): void {
+		if(!(this.migrationData[tableName]?.allowedMigrations[version] ?? this.alwaysAllowed)[type])
+			throw new MigrationNotAllowedException(version, tableName, type);
 	}
 	
 	public renameTable(oldTableName: string, newTable: Class<BackendTable>) {
@@ -65,4 +91,4 @@ export class Migrations {
 	}
 }
 
-export type PublicMigrations = Pick<Migrations, "recreateTable" | "renameTable" | "renameColumn">;
+export type PublicMigrations = Pick<Migrations, "recreateTable" | "renameTable" | "renameColumn" | "allowMigration" | "alwaysAllow">;

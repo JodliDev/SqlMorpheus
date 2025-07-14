@@ -54,7 +54,6 @@ describe("Integration tests", () => {
 		
 		//Rollback to empty state:
 		
-		--instructions.version;
 		await new MigrationManager({runGetStatement, runMultipleWriteStatements}, instructions).rollback(instructions.version - 1);
 		expect(await getTables()).toEqual([]);
 	}
