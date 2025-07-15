@@ -1,7 +1,7 @@
-import {Class, BackendTable} from "./BackendTable.ts";
+import {BackendTable, Class} from "./BackendTable.ts";
 import {PublicMigrations} from "./Migrations.ts";
 import {SqlChanges} from "./SqlChanges.ts";
-import TableInfo from "../tableInfo/TableInfo.ts";
+import {TableObjects} from "../tableInfo/TableObjects.ts";
 
 
 export default interface DatabaseInstructions {
@@ -29,4 +29,3 @@ export default interface DatabaseInstructions {
 	postMigration?(fromVersion: number, toVersion: number): SqlChanges;
 }
 
-export type TableObjects = Record<string, {columns: BackendTable, tableInfo?: TableInfo}>;

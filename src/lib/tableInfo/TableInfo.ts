@@ -1,7 +1,7 @@
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
 import {BackendTable, Class} from "../typings/BackendTable.ts";
 
-export const TABLE_INFO_PROPERTY_NAME = "__tableInfo";
+export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 
 export default interface TableInfo {
 	primaryKey?: string;
@@ -9,12 +9,14 @@ export default interface TableInfo {
 }
 
 export function getTableInfo<T extends BackendTable>(table: Class<T>): TableInfo {
-	const anyTable = table as any;
-	if(!anyTable.hasOwnProperty(TABLE_INFO_PROPERTY_NAME)) {
-		Object.defineProperty(table, TABLE_INFO_PROPERTY_NAME, {
-			value: {primaryKey: "", foreignKeys: []} satisfies TableInfo,
-			writable: false
-		});
-	}
-	return anyTable[TABLE_INFO_PROPERTY_NAME];
+	if(!table.hasOwnProperty(Symbol.metadata))
+		table[Symbol.metadata] = {};
+	return getTableInfoFromMetadata(table[Symbol.metadata]!);
+}
+
+export function getTableInfoFromMetadata(metadata: Record<PropertyKey, unknown>): TableInfo {
+	if(!metadata[TABLE_INFO_PROPERTY_NAME])
+		metadata[TABLE_INFO_PROPERTY_NAME] = {primaryKey: "", foreignKeys: []} satisfies TableInfo;
+	
+	return metadata[TABLE_INFO_PROPERTY_NAME]!;
 }
