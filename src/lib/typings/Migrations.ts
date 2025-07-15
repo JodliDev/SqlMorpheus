@@ -7,16 +7,19 @@ export class Migrations {
 	private readonly migrationData: Record<string, MigrationInstructions> = {};
 	private alwaysAllowed: AllowedMigrations = {};
 	
-	private getEntry(newTable: Class<BackendTable>): MigrationInstructions {
-		const newTableName = newTable.name;
-		if(!this.migrationData.hasOwnProperty(newTableName)) {
-			this.migrationData[newTableName] = {
+	private getEntry(table: string | Class<BackendTable>): MigrationInstructions {
+		const tableName = this.getTableName(table);
+		if(!this.migrationData.hasOwnProperty(tableName)) {
+			this.migrationData[tableName] = {
 				recreate: false,
 				renamedColumns: [],
 				allowedMigrations: {}
 			};
 		}
-		return this.migrationData[newTableName]
+		return this.migrationData[tableName]
+	}
+	private getTableName(table: string | Class<BackendTable>): string {
+		return typeof table == "string" ? table : table.name;
 	}
 	
 	alwaysAllow(... allowedMigrations: (keyof AllowedMigrations)[]) {
@@ -24,7 +27,7 @@ export class Migrations {
 			this.alwaysAllowed[key] = true;
 		}
 	}
-	public allowMigration(version: number, table: Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
+	public allowMigration(version: number, table: string | Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
 		const entry = this.getEntry(table);
 		
 		if(!entry.allowedMigrations.hasOwnProperty(version))
@@ -40,14 +43,14 @@ export class Migrations {
 			throw new MigrationNotAllowedException(version, tableName, type);
 	}
 	
-	public renameTable(oldTableName: string, newTable: Class<BackendTable>) {
+	public renameTable(oldTableName: string, newTable: string | Class<BackendTable>) {
 		const entry = this.getEntry(newTable);
 		entry.recreate = true;
 		if(!entry.oldTableName) //entry might have already existed
 			entry.oldTableName = oldTableName;
 	}
 	
-	public renameColumn(table: Class<BackendTable>, oldColumn: string, newColumn: string): void {
+	public renameColumn(table: string | Class<BackendTable>, oldColumn: string, newColumn: string): void {
 		const entry = this.getEntry(table);
 		const existingColumnEntry = entry.renamedColumns.find((entry) => entry[entry.length - 1] == oldColumn);
 		
@@ -57,8 +60,8 @@ export class Migrations {
 			entry.renamedColumns.push([oldColumn, newColumn]);
 	}
 	
-	public recreateTable(newTable: Class<BackendTable>) {
-		const entry = this.getEntry(newTable);
+	public recreateTable(table: Class<BackendTable> | string) {
+		const entry = this.getEntry(table);
 		entry.recreate = true;
 	}
 	

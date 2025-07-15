@@ -1,42 +1,49 @@
 import {BackendTable, Class} from "./typings/BackendTable.ts";
 import {ColumnInfo} from "./typings/ColumnInfo.ts";
-import {getPrimaryKey} from "./decorators/Entity.ts";
-import {getForeignKeys} from "./decorators/ForeignKeys.ts";
-import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
+import DatabaseInstructions, {TableObjects} from "./typings/DatabaseInstructions.ts";
 import {TableStructure} from "./typings/TableStructure.ts";
 import DefaultSql from "./dialects/DefaultSql.ts";
 import {Logger} from "./Logger.ts";
+import {getTableInfo} from "./tableInfo/TableInfo.ts";
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
-	public readonly tables: Record<string, TableStructure<BackendTable>> = {}
+	public readonly tables: Record<string, TableStructure> = {}
 	
 	constructor(dbContext: DatabaseInstructions, dialect: DefaultSql) {
 		this.dialect = dialect;
-		this.getExpectedStructure(dbContext.tables);
+		
+		if(dbContext.tables.length) {
+			const tableObjects: TableObjects = {};
+			
+			for(const table of dbContext.tables as Class<BackendTable>[]) {
+				tableObjects[table.name] = {columns: new table, tableInfo: getTableInfo(table)};
+			}
+			this.getExpectedStructure(tableObjects);
+		}
+		else {
+			const tableObjects = dbContext.tables as TableObjects;
+			this.getExpectedStructure(tableObjects);
+		}
 	}
 	
-	private getExpectedStructure(tables: Class<BackendTable>[]): void {
-		for(const table of tables) {
-			const obj = new table;
+	private getExpectedStructure(tableObjects: TableObjects): void {
+		for(const tableName in tableObjects) {
+			const obj = tableObjects[tableName];
+			const tableInfo = obj.tableInfo;
 			
-			const primaryKey = getPrimaryKey(table);
-			if(!obj.hasOwnProperty(primaryKey)) {
-				Logger.warn(`Skipping table ${table.name} because it has no primary key (Could not find: "${primaryKey}")`);
-				continue;
-			}
 			
-			this.tables[table.name] = {
-				table: table,
-				primaryKey: primaryKey,
-				columns: this.getColumns(obj, primaryKey),
-				foreignKeys: getForeignKeys(table)
+			this.tables[tableName] = {
+				table: tableName,
+				primaryKey: tableInfo?.primaryKey,
+				columns: this.getColumns(obj.columns, tableInfo?.primaryKey),
+				foreignKeys: tableInfo?.foreignKeys
 			};
 		}
 	}
 	
 	
-	private getColumns(obj: BackendTable, primaryKey: keyof BackendTable): ColumnInfo[] {
+	private getColumns(obj: BackendTable, primaryKey?: keyof BackendTable): ColumnInfo[] {
 		const columns: ColumnInfo[] = [];
 		for(const property in obj) {
 			const propertyKey = property as keyof BackendTable;

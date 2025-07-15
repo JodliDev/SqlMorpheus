@@ -1,11 +1,12 @@
 import {Class, BackendTable} from "./BackendTable.ts";
 import {PublicMigrations} from "./Migrations.ts";
 import {SqlChanges} from "./SqlChanges.ts";
+import TableInfo from "../tableInfo/TableInfo.ts";
 
 
 export default interface DatabaseInstructions {
-	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres" | string;
-	tables: Class<BackendTable>[];
+	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres";
+	tables: Class<BackendTable>[] | TableObjects;
 	version: number;
 	configPath: string;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
@@ -27,3 +28,5 @@ export default interface DatabaseInstructions {
 	 */
 	postMigration?(fromVersion: number, toVersion: number): SqlChanges;
 }
+
+export type TableObjects = Record<string, {columns: BackendTable, tableInfo?: TableInfo}>;
