@@ -29,7 +29,8 @@ describe("Integration tests", () => {
 			toColumn: "id",
 			onDelete: "CASCADE",
 			onUpdate: "SET DEFAULT",
-			
 		} satisfies ForeignKeyInfo);
+		
+		expect(getTableInfo(TestClass2).foreignKeys).toEqual([]);
 	})
 });
