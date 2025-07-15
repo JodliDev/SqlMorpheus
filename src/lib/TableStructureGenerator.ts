@@ -1,11 +1,11 @@
-import {BackendTable, Class} from "./typings/BackendTable.ts";
-import {ColumnInfo} from "./typings/ColumnInfo.ts";
-import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
-import {TableStructure} from "./typings/TableStructure.ts";
-import DefaultSql from "./dialects/DefaultSql.ts";
-import {Logger} from "./Logger.ts";
-import {getTableInfo} from "./tableInfo/TableInfo.ts";
-import {TableObjects} from "./tableInfo/TableObjects.ts";
+import {BackendTable, Class} from "./typings/BackendTable";
+import {ColumnInfo} from "./typings/ColumnInfo";
+import DatabaseInstructions from "./typings/DatabaseInstructions";
+import {TableStructure} from "./typings/TableStructure";
+import DefaultSql from "./dialects/DefaultSql";
+import {Logger} from "./Logger";
+import {getTableInfo} from "./tableInfo/TableInfo";
+import {TableObjects} from "./tableInfo/TableObjects";
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;

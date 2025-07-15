@@ -1,7 +1,7 @@
-import {Class, BackendTable} from "./BackendTable.ts";
-import AllowedMigrations from "./AllowedMigrations.ts";
-import MigrationInstructions from "./MigrationInstructions.ts";
-import MigrationNotAllowedException from "../exceptions/NotAllowedException.ts";
+import {Class, BackendTable} from "./BackendTable";
+import AllowedMigrations from "./AllowedMigrations";
+import MigrationInstructions from "./MigrationInstructions";
+import MigrationNotAllowedException from "../exceptions/NotAllowedException";
 
 export class Migrations {
 	private readonly migrationData: Record<string, MigrationInstructions> = {};

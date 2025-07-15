@@ -1,6 +1,6 @@
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
-import {DatabaseAccess} from "../typings/DatabaseAccess.ts";
-import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {DatabaseAccess} from "../typings/DatabaseAccess";
+import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default abstract class DefaultSql {
 	public canAlterForeignKeys: boolean = false;

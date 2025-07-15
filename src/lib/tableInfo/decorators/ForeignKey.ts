@@ -1,7 +1,7 @@
-import {BackendTable, Class} from "../../typings/BackendTable.ts";
-import {getTableInfoFromMetadata} from "../TableInfo.ts";
+import {BackendTable, Class} from "../../typings/BackendTable";
+import {getTableInfoFromMetadata} from "../TableInfo";
 import "polyfill-symbol-metadata";
-import {ForeignKeyActions} from "../../typings/ForeignKeyInfo.ts"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 export default function ForeignKey<
 	TOther extends BackendTable

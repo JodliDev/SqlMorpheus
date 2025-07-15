@@ -1,8 +1,8 @@
-import {MigrationManager} from "./lib/MigrationManager.ts";
-import {DatabaseAccess} from "./lib/typings/DatabaseAccess.ts";
-import DatabaseInstructions from "./lib/typings/DatabaseInstructions.ts";
-import MigrationHistoryManager from "./lib/MigrationHistoryManager.ts";
-import {Logger} from "./lib/Logger.ts";
+import {MigrationManager} from "./lib/MigrationManager";
+import {DatabaseAccess} from "./lib/typings/DatabaseAccess";
+import DatabaseInstructions from "./lib/typings/DatabaseInstructions";
+import MigrationHistoryManager from "./lib/MigrationHistoryManager";
+import {Logger} from "./lib/Logger";
 
 export async function prepareMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
 	Logger.setMode(instructions.loggerMode);

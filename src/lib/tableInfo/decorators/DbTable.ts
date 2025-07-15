@@ -1,5 +1,5 @@
-import {BackendTable, Class} from "../../typings/BackendTable.ts";
-import {getTableInfoFromMetadata} from "../TableInfo.ts";
+import {BackendTable, Class} from "../../typings/BackendTable";
+import {getTableInfoFromMetadata} from "../TableInfo";
 
 export default function DbTable<T extends BackendTable>(tableName: string, primaryKey?: keyof T) {
 	return (table: Class<T>, context: any) => {

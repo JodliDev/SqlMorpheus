@@ -1,4 +1,4 @@
-import AllowedMigrations from "../typings/AllowedMigrations.ts";
+import AllowedMigrations from "../typings/AllowedMigrations";
 
 export default class NotAllowedException extends Error {
 	constructor(version: number, tableName: string, type: keyof AllowedMigrations) {

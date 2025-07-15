@@ -1,6 +1,6 @@
 import {existsSync, mkdirSync, writeFileSync} from "node:fs";
 import {readFileSync} from "fs";
-import {SqlChanges} from "./typings/SqlChanges.ts";
+import {SqlChanges} from "./typings/SqlChanges";
 
 const FILENAME_UP_PREFIX = "up_to_";
 const FILENAME_DOWN_PREFIX = "down_to_";

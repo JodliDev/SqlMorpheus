@@ -1,7 +1,7 @@
-import {BackendTable, Class} from "./BackendTable.ts";
-import {PublicMigrations} from "./Migrations.ts";
-import {SqlChanges} from "./SqlChanges.ts";
-import {TableObjects} from "../tableInfo/TableObjects.ts";
+import {BackendTable, Class} from "./BackendTable";
+import {PublicMigrations} from "./Migrations";
+import {SqlChanges} from "./SqlChanges";
+import {TableObjects} from "../tableInfo/TableObjects";
 
 
 export default interface DatabaseInstructions {

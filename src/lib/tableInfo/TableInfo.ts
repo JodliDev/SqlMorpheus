@@ -1,5 +1,5 @@
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
-import {BackendTable, Class} from "../typings/BackendTable.ts";
+import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {BackendTable, Class} from "../typings/BackendTable";
 
 export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 

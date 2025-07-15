@@ -1,7 +1,7 @@
-import DefaultSql from "./DefaultSql.ts";
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
-import {DatabaseAccess} from "../typings/DatabaseAccess.ts";
-import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import DefaultSql from "./DefaultSql";
+import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {DatabaseAccess} from "../typings/DatabaseAccess";
+import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default class MySqlDialect extends DefaultSql {
 	public canAlterForeignKeys: boolean = true;

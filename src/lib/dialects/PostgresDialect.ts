@@ -1,6 +1,6 @@
-import DefaultSql from "./DefaultSql.ts";
-import {DatabaseAccess} from "../typings/DatabaseAccess.ts";
-import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import DefaultSql from "./DefaultSql";
+import {DatabaseAccess} from "../typings/DatabaseAccess";
+import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default class PostgresDialect extends DefaultSql {
 	public canAlterForeignKeys: boolean = true;

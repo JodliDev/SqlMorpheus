@@ -1,4 +1,4 @@
-import AllowedMigrations from "./AllowedMigrations.ts";
+import AllowedMigrations from "./AllowedMigrations";
 
 export default interface MigrationInstructions {
 	oldTableName?: string;
