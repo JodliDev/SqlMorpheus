@@ -1,24 +1,29 @@
 {
-  "name": "sqlmigri",
-  "version": "1.0.0",
+  "name": "sqlmorpheus",
+  "version": "0.1.0",
   "author": "JodliDev",
   "keywords": [],
   "license": "MIT",
   "description": "",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/my-ts-library"
+    "url": "https://github.com/JodliDev/SqlMorpheus"
   },
   "bugs": {
-    "url": "https://github.com/your-username/my-ts-library/issues"
+    "url": "https://github.com/JodliDev/SqlMorpheus/issues"
   },
-  "homepage": "https://github.com/your-username/my-ts-library#readme",
-  "main": "index.js",
+  "homepage": "https://github.com/JodliDev/SqlMorpheus#readme",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "publish": "tsc && npm publish"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
