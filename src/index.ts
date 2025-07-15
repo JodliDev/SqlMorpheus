@@ -3,6 +3,8 @@ import {DatabaseAccess} from "./lib/typings/DatabaseAccess";
 import DatabaseInstructions from "./lib/typings/DatabaseInstructions";
 import MigrationHistoryManager from "./lib/MigrationHistoryManager";
 import {Logger} from "./lib/Logger";
+import DbTable from "./lib/tableInfo/decorators/DbTable";
+import ForeignKey from "./lib/tableInfo/decorators/ForeignKey";
 
 export async function prepareMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
 	Logger.setMode(instructions.loggerMode);
@@ -49,3 +51,4 @@ export async function rollback(db: DatabaseAccess, instructions: DatabaseInstruc
 	}
 	migrationHistoryManager.setLastHistoryVersion(toVersion);
 }
+export {DbTable, ForeignKey};
