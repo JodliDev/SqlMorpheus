@@ -7,7 +7,7 @@ import {SqlChanges} from "../src/lib/typings/SqlChanges";
 import {prepareAndRunMigration, rollback} from "../src/index";
 
 describe("Integration tests", () => {
-	const configPath = `${process.cwd()}/configs/`;
+	const configPath = `${process.cwd()}/config/`;
 	async function runTest(runGetStatement: (query: string) => Promise<unknown>, runMultipleWriteStatements: (query: string) => Promise<void>, getTables: () => Promise<string[]>) {
 		//Create tables:
 		
