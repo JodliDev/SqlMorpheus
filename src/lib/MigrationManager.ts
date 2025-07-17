@@ -14,6 +14,11 @@ import MySqlDialect from "./dialects/MySqlDialect";
 import {Logger} from "./Logger";
 
 
+/**
+ * The MigrationManager class is responsible for managing database schema migrations.
+ * It handles tasks such as generating SQL for migrations, creating migration histories,
+ * and synchronizing database schema changes between different versions.
+ */
 export class MigrationManager {
 	private migrations = new Migrations()
 	
@@ -48,6 +53,17 @@ export class MigrationManager {
 		this.migrationHistoryManager = new MigrationHistoryManager(this.dbInstructions.configPath);
 	}
 	
+	/**
+	 * Generates the SQL changes required to migrate a database from its current version
+	 * to the target version defined in the database instructions. Handles the creation
+	 * and deletion of tables, migration of foreign keys and columns, renaming of columns,
+	 * and recreating tables, along with executing any pre- and post-migration custom logic.
+	 *
+	 * @return A promise that resolves to an object containing the SQL
+	 * changes for the migration (`up` and `down` changes) or null if no migration is required.
+	 * Throws an error in scenarios such as attempting to migrate to a lower version
+	 * or an invalid starting version.
+	 */
 	public async getMigrateSql(): Promise<SqlChanges | null> {
 		if(this.dbInstructions.version <= 0)
 			throw new Error("Cannot migrate to version 0 or lower");
@@ -115,6 +131,15 @@ export class MigrationManager {
 		
 		return changes;
 	}
+	
+	
+	/**
+	 * Prepares the migration by generating the SQL changes and creating a migration history entry.
+	 * If no changes are needed, the method exits early.
+	 *
+	 * @param overwriteExisting - Optional flag indicating if overwriting existing changes is allowed.
+	 * @return - A promise that resolves once the migration preparation is complete.
+	 */
 	public async prepareMigration(overwriteExisting?: boolean): Promise<void> {
 		const changes = await this.getMigrateSql();
 		if(!changes)
@@ -123,6 +148,15 @@ export class MigrationManager {
 		this.migrationHistoryManager.createMigrationHistory(this.dbInstructions.version, changes, overwriteExisting);
 	}
 	
+	/**
+	 * Generates SQL change statements for creating and dropping tables based on the current table structure
+	 * and existing table configurations in the database. The `up` changes include SQL statements for creating
+	 * new tables, while the `down` changes include SQL statements for dropping the corresponding tables or
+	 * recreating them if necessary.
+	 *
+	 * @return {Promise<SqlChanges>} A promise that resolves to an object containing `up` and `down` SQL
+	 * change statements for migrating the database schema.
+	 */
 	private async createAndDropTables(): Promise<SqlChanges> {
 		let changes = {
 			up: "\n\n-- Create tables\n",
@@ -153,6 +187,16 @@ export class MigrationManager {
 		return changes;
 	}
 	
+	/**
+	 * Generates an SQL string to create a table with the specified schema.
+	 *
+	 * @param tableName - The name of the table to be created.
+	 * @param columns - An array of objects defining the columns of the table, including their names, types
+	 * default values, and whether they are primary keys.
+	 * @param foreignKeys - An optional array of objects defining the foreign key constraints for the table,
+	 * including the source column, target table, target column, action on update, and action on delete.
+	 * @return The complete SQL string to create the table with the specified structure and constraints.
+	 */
 	private createTableSql(tableName: string, columns: ColumnInfo[], foreignKeys?: ForeignKeyInfo[]): string {
 		
 		//columns:
@@ -170,10 +214,21 @@ export class MigrationManager {
 		return this.dialect.createTable(tableName, queryLines);
 	}
 	
-	private tableDoesNotExists(tableName: string) {
+	/**
+	 * Checks if the specified table does not exist in the list of existing tables.
+	 *
+	 * @param tableName - The name of the table to check.
+	 * @return Returns true if the table does not exist, otherwise false.
+	 */
+	private tableDoesNotExists(tableName: string): boolean {
 		return this.existingTables.indexOf(tableName) == -1
 	}
 	
+	/**
+	 * Recreates database tables that have been flagged to be recreated in migration data.
+	 * This method generated the necessary SQL code for backing up the current table data, dropping and recreating
+	 * the tables, and reinserting the preserved data into the recreated tables.
+	 */
 	private async recreateTables(): Promise<SqlChanges> {
 		const changes = {
 			up: "\n\n-- Recreate tables\n",
@@ -223,6 +278,9 @@ export class MigrationManager {
 		return changes;
 	}
 	
+	/**
+	 * Migrates foreign key constraints for all defined tables.
+	 */
 	private async migrateForeignKeys(): Promise<SqlChanges> {
 		if(!this.dialect.canAlterForeignKeys)
 			return {up: "", down: ""};
@@ -385,6 +443,12 @@ export class MigrationManager {
 		return changes;
 	}
 	
+	/**
+	 * Retrieves the name of the primary key column from a list of column information.
+	 *
+	 * @param columnInfoList - An array of ColumnInfo objects containing details about each column.
+	 * @return The name of the primary key column if found; otherwise, undefined.
+	 */
 	private getPrimaryKeyColumn(columnInfoList: ColumnInfo[]): string | undefined{
 		for(const columnInfo of columnInfoList) {
 			if(columnInfo.isPrimaryKey)
@@ -392,6 +456,10 @@ export class MigrationManager {
 		}
 	}
 	
+	/**
+	 * Handles the renaming of columns in database tables by generating SQL changes for both applying and reverting the renames.
+	 * Skips tables that are marked for recreation.
+	 */
 	private renameColumns(): SqlChanges {
 		const changes = {
 			up: "\n\n-- Rename columns\n",

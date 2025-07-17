@@ -1,6 +1,14 @@
 import {BackendTable, Class} from "../../typings/BackendTable";
 import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
+import "polyfill-symbol-metadata";
 
+/**
+ * Decorator function to configure a database table with its name and primary key
+ * and to add missing "fromTable" properties to foreign keys.
+ *
+ * @param tableName - The name of the database table used in SQL.
+ * @param primaryKey - The property name representing the primary property of the table.
+ */
 export default function DbTable<T extends BackendTable>(tableName: string, primaryKey?: keyof T) {
 	return (table: Class<T>, context?: any) => {
 		Object.defineProperty(table, "name", {value: tableName, writable: false});

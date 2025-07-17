@@ -1,6 +1,11 @@
 export type LoggerMode = "silent" | "noLog" | "normal" | "debug";
 
 
+/**
+ * A simple LoggerClass which provides functionality for logging messages
+ * in different modes such as normal, debug, silent, and noLog.
+ * It allows controlling the verbosity of logs based on the mode.
+ */
 class LoggerClass {
 	mode: LoggerMode = "normal";
 	
