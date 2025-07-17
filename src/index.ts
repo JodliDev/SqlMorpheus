@@ -62,4 +62,4 @@ export async function rollback(db: DatabaseAccess, instructions: DatabaseInstruc
 	}
 	await dialect.setVersion(db, toVersion);
 }
-export {DbTable, ForeignKey, DatabaseInstructions};
+export {DbTable, ForeignKey, DatabaseAccess, DatabaseInstructions};
