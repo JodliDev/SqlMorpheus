@@ -7,7 +7,7 @@
   "description": "",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JodliDev/SqlMorpheus"
+    "url": "git://github.com/JodliDev/SqlMorpheus.git"
   },
   "bugs": {
     "url": "https://github.com/JodliDev/SqlMorpheus/issues"
@@ -23,7 +23,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "publish": "tsc && npm publish"
+    "run_publish": "npm publish"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
