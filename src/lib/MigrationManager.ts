@@ -17,21 +17,22 @@ import getDialect from "./getDialect";
  * and synchronizing database schema changes between different versions.
  */
 export class MigrationManager {
-	private migrations = new Migrations()
+	private readonly migrations: Migrations;
+	private readonly toVersion: number;
 	
 	private readonly tableStructureGenerator: TableStructureGenerator;
 	private existingTables: string[] = [];
 	private readonly db: DatabaseAccess;
 	private readonly dbInstructions: DatabaseInstructions;
-	private readonly migrationHistoryManager: MigrationHistoryManager;
 	private readonly dialect: DefaultSql;
 	
 	constructor(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
+		this.toVersion = dbInstructions.version;
+		this.migrations = new Migrations(dbInstructions);
 		this.dialect = getDialect(dbInstructions);
 		this.db = db;
 		this.dbInstructions = dbInstructions;
 		this.tableStructureGenerator = new TableStructureGenerator(dbInstructions, this.dialect);
-		this.migrationHistoryManager = new MigrationHistoryManager(this.dbInstructions.configPath);
 	}
 	
 	/**
@@ -46,26 +47,27 @@ export class MigrationManager {
 	 * or an invalid starting version.
 	 */
 	public async getMigrateSql(): Promise<SqlChanges | null> {
-		if(this.dbInstructions.version <= 0)
+		if(this.toVersion <= 0)
 			throw new Error("Cannot migrate to version 0 or lower");
 		
 		const fromVersion = await this.dialect.getVersion(this.db);
+		this.migrations.fromVersion = fromVersion;
 		if(fromVersion == 0) {
 			Logger.log(`Creating initial migration to version ${this.dbInstructions.version}`);
 			return this.createAndDropTables();
 		}
 		
-		if(fromVersion == this.dbInstructions.version) {
+		if(fromVersion == this.toVersion) {
 			Logger.log("Version has not changed. No migrations needed.")
 			return null;
 		}
-		if(fromVersion > this.dbInstructions.version)
-			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${this.dbInstructions.version})`);
+		if(fromVersion > this.toVersion)
+			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${this.toVersion})`);
 		
-		Logger.log(`Creating migration SQL from version ${fromVersion} to ${this.dbInstructions.version}`);
+		Logger.log(`Creating migration SQL from version ${fromVersion} to ${this.toVersion}`);
 		
 		const db = this.db;
-		await db.createBackup?.(`from_${fromVersion}_to_${this.dbInstructions.version}`);
+		await db.createBackup?.(`from_${fromVersion}_to_${this.toVersion}`);
 		
 		this.existingTables = await this.dialect.getTableNames(this.db);
 		
@@ -79,7 +81,7 @@ export class MigrationManager {
 		const preSQL = this.dbInstructions.preMigration?.(
 			this.migrations,
 			fromVersion,
-			this.dbInstructions.version,
+			this.toVersion,
 		);
 		if(preSQL) {
 			changes.up += `\n\n-- Custom SQL from preMigration()\n${preSQL.up}`;
@@ -98,7 +100,7 @@ export class MigrationManager {
 		})
 		
 		//Run post-migrations:
-		const postSql = this.dbInstructions.postMigration?.(fromVersion, this.dbInstructions.version);
+		const postSql = this.dbInstructions.postMigration?.(fromVersion, this.toVersion);
 		if(postSql) {
 			changes.up += `\n\n-- Custom SQL from postMigration()\n${postSql.up}`;
 			changes.down += `\n\n-- Custom SQL from postMigration()\n${postSql.down}`;
@@ -126,7 +128,8 @@ export class MigrationManager {
 		if(!changes)
 			return;
 		const fromVersion = await this.dialect.getVersion(this.db);
-		this.migrationHistoryManager.createMigrationHistory(fromVersion, this.dbInstructions.version, changes, overwriteExisting);
+		const migrationHistoryManager = new MigrationHistoryManager(this.dbInstructions.configPath);
+		migrationHistoryManager.createMigrationHistory(fromVersion, this.toVersion, changes, overwriteExisting);
 	}
 	
 	/**
@@ -154,9 +157,9 @@ export class MigrationManager {
 		
 		for(const tableName of this.existingTables) {
 			if(!this.tableStructureGenerator.tables[tableName]) {
-				this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "dropTable");
+				this.migrations.throwIfNotAllowed(tableName, "dropTable");
 				if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-					this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "continueWithoutRollback");
+					this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
 				
 				changes.up += `${this.dialect.dropTable(tableName)}\n`;
 				changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
@@ -223,9 +226,9 @@ export class MigrationManager {
 			if(!migrationEntry.recreate)
 				continue;
 			
-			this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "recreateTable");
+			this.migrations.throwIfNotAllowed(tableName, "recreateTable");
 			if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-				this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "continueWithoutRollback");
+				this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
 				
 			const oldColumnList = await this.dialect.getColumnInformation(tableName, this.db);
 			const newColumnList = this.tableStructureGenerator.tables[tableName].columns;
@@ -286,7 +289,7 @@ export class MigrationManager {
 				//Check for removed foreign key:
 				if(!newForeignKey) {
 					Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was removed!`);
-					this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "removeForeignKey");
+					this.migrations.throwIfNotAllowed(tableName, "removeForeignKey");
 					if(this.dialect.canAlterForeignKeys) {
 						changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn);
 						changes.down += this.dialect.addForeignKey(
@@ -295,7 +298,7 @@ export class MigrationManager {
 						);
 					}
 					else {
-						this.migrations.recreateTable(structure.table);
+						this.migrations.recreateTable(this.toVersion, structure.table);
 						checkForNewForeignKeys = false;
 					}
 				}
@@ -307,7 +310,7 @@ export class MigrationManager {
 						|| ((oldForeignKey.onDelete ?? "NO ACTION") != (newForeignKey.onDelete ?? "NO ACTION"))
 					) {
 						Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was changed!`);
-						this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "alterForeignKey");
+						this.migrations.throwIfNotAllowed(tableName, "alterForeignKey");
 						if(this.dialect.canAlterForeignKeys) {
 							changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn)
 								+ this.dialect.addForeignKey(
@@ -321,7 +324,7 @@ export class MigrationManager {
 							
 						}
 						else {
-							this.migrations.recreateTable(structure.table);
+							this.migrations.recreateTable(this.toVersion, structure.table);
 							checkForNewForeignKeys = false;
 						}
 					}
@@ -345,7 +348,7 @@ export class MigrationManager {
 						
 						changes.down += this.dialect.removeForeignKey(newForeignKey.fromTable, newForeignKey.fromColumn);
 					} else {
-						this.migrations.recreateTable(structure.table);
+						this.migrations.recreateTable(this.toVersion, structure.table);
 						break;
 					}
 				}
@@ -381,7 +384,7 @@ export class MigrationManager {
 			//Search for changed primary key:
 			if(this.dialect.canInspectPrimaryKey && oldPrimaryKey != newPrimaryKey) {
 				Logger.log(`Primary key in ${tableName} was changed from ${oldPrimaryKey} to ${newPrimaryKey}!`);
-				this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "alterPrimaryKey");
+				this.migrations.throwIfNotAllowed(tableName, "alterPrimaryKey");
 				if(this.dialect.canAlterPrimaryKey) {
 					if(oldPrimaryKey) {
 						changes.up += this.dialect.removePrimaryKey(tableName, oldPrimaryKey);
@@ -393,7 +396,7 @@ export class MigrationManager {
 					}
 				}
 				else
-					this.migrations.recreateTable(newTableDefinition.table);
+					this.migrations.recreateTable(this.toVersion, newTableDefinition.table);
 				continue;
 			}
 			
@@ -408,7 +411,7 @@ export class MigrationManager {
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
 				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
-					this.migrations.recreateTable(newTableDefinition.table);
+					this.migrations.recreateTable(this.toVersion, newTableDefinition.table);
 				}
 			}
 			
@@ -418,7 +421,7 @@ export class MigrationManager {
 					entry.name == this.migrations.getUpdatedColumnName(tableName, oldColumn.name)
 				);
 				if(newColumn == undefined) {
-					this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "dropColumn");
+					this.migrations.throwIfNotAllowed(tableName, "dropColumn");
 					changes.up += this.dialect.dropColumn(tableName, oldColumn.name) + "\n";
 					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.type, oldColumn.defaultValue, oldColumn.isPrimaryKey)) + "\n";
 				}

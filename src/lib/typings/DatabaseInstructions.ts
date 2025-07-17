@@ -2,6 +2,7 @@ import {BackendTable, Class} from "./BackendTable";
 import {PublicMigrations} from "./Migrations";
 import {SqlChanges} from "./SqlChanges";
 import {TableObjects} from "../tableInfo/TableObjects";
+import AllowedMigrations from "./AllowedMigrations";
 
 
 export default interface DatabaseInstructions {
@@ -10,6 +11,7 @@ export default interface DatabaseInstructions {
 	version: number;
 	configPath: string;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
+	alwaysAllowed?: AllowedMigrations;
 	
 	/**
 	 * Custom migrations that will run before any database changes are applied.
