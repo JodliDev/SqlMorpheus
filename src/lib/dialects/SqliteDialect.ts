@@ -5,6 +5,7 @@ import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default class SqliteDialect extends DefaultSql {
 	public typeBoolean = "INTEGER";
+	public typeBigInt = "INTEGER";
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	public canInspectForeignKeys: boolean = true;
@@ -45,7 +46,7 @@ export default class SqliteDialect extends DefaultSql {
 		});
 	}
 	
-	public formatValueToSql(value: string | number | boolean): string {
+	public formatValueToSql(value: any): string {
 		switch(typeof value) {
 			case "boolean":
 				return value ? "1" : "0";

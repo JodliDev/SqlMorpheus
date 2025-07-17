@@ -12,10 +12,11 @@ export default abstract class DefaultSql {
 	
 	public typeString = "TEXT";
 	public typeInt = "INTEGER";
+	public typeBigInt = "BIGINT";
 	public typeBoolean = "BOOLEAN";
 	public typeNull = "NULL";
 	
-	public formatValueToSql(value: string | number | boolean): string {
+	public formatValueToSql(value: any): string {
 		return value.toString();
 	}
 	

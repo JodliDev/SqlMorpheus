@@ -61,8 +61,12 @@ export default class TableStructureGenerator {
 					columnData.type = this.dialect.typeString;
 					columnData.defaultValue = value === null ? this.dialect.typeNull : `"${this.dialect.formatValueToSql(value)}"`;
 					break
+				case "bigint":
+					columnData.type = this.dialect.typeBigInt;
+					columnData.defaultValue = value === null ? this.dialect.typeNull : this.dialect.formatValueToSql(value);
+					break
 				case "number":
-					columnData.type = this.dialect.typeNumber;
+					columnData.type = this.dialect.typeInt;
 					columnData.defaultValue = value === null ? this.dialect.typeNull : this.dialect.formatValueToSql(value);
 					break
 				case "boolean":
