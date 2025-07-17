@@ -399,7 +399,9 @@ export class MigrationManager {
 			
 			//Search for added or changed columns:
 			for(const newColumn of newColumnList) {
-				const oldColumn = oldColumnList.find(entry => entry.name == newColumn.name);
+				const oldColumn = oldColumnList.find(entry =>
+					this.migrations.getUpdatedColumnName(tableName, entry.name) == newColumn.name
+				);
 				
 				if(oldColumn == undefined) {
 					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.type, newColumn.defaultValue, newColumn.isPrimaryKey)) + "\n";
@@ -412,7 +414,9 @@ export class MigrationManager {
 			
 			//Search for removed columns:
 			for(const oldColumn of oldColumnList) {
-				const newColumn = newColumnList.find(entry => entry.name == oldColumn.name);
+				const newColumn = newColumnList.find(entry =>
+					entry.name == this.migrations.getUpdatedColumnName(tableName, oldColumn.name)
+				);
 				if(newColumn == undefined) {
 					this.migrations.throwIfNotAllowed(this.dbInstructions.version, tableName, "dropColumn");
 					changes.up += this.dialect.dropColumn(tableName, oldColumn.name) + "\n";
