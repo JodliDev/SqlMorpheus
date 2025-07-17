@@ -2,9 +2,9 @@ import {test, describe, expect, beforeEach} from "vitest";
 import BetterSqlite3 from "better-sqlite3";
 import * as fs from "node:fs";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
-import {PublicMigrations} from "../src/lib/typings/Migrations";
-import {SqlChanges} from "../src/lib/typings/SqlChanges";
-import {prepareAndRunMigration, rollback} from "../src/index";
+import {PublicMigrations} from "../src";
+import {SqlChanges} from "../src";
+import {prepareAndRunMigration, rollback} from "../src";
 
 describe("Integration tests", () => {
 	const configPath = `${process.cwd()}/config/`;

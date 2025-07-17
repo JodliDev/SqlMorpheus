@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
 import MigrationHistoryManager from "../src/lib/MigrationHistoryManager";
-import {SqlChanges} from "../src/lib/typings/SqlChanges";
+import {SqlChanges} from "../src";
 
 // Mock fs operations
 vi.mock("fs", () => ({

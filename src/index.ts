@@ -6,6 +6,8 @@ import {Logger} from "./lib/Logger";
 import DbTable from "./lib/tableInfo/decorators/DbTable";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey";
 import getDialect from "./lib/getDialect";
+import {PublicMigrations} from "./lib/typings/Migrations";
+import {SqlChanges} from "./lib/typings/SqlChanges";
 
 export async function prepareMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
 	Logger.setMode(instructions.loggerMode);
@@ -62,4 +64,5 @@ export async function rollback(db: DatabaseAccess, instructions: DatabaseInstruc
 	}
 	await dialect.setVersion(db, toVersion);
 }
-export {DbTable, ForeignKey, DatabaseAccess, DatabaseInstructions};
+
+export {DbTable, ForeignKey, DatabaseAccess, DatabaseInstructions, PublicMigrations, SqlChanges};
