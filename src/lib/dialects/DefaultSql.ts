@@ -2,6 +2,8 @@ import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
 
+const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
+
 export default abstract class DefaultSql {
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
@@ -9,7 +11,7 @@ export default abstract class DefaultSql {
 	public canInspectPrimaryKey: boolean = false;
 	
 	public typeString = "TEXT";
-	public typeNumber = "INTEGER";
+	public typeInt = "INTEGER";
 	public typeBoolean = "BOOLEAN";
 	public typeNull = "NULL";
 	
@@ -60,10 +62,9 @@ export default abstract class DefaultSql {
 	}
 	
 	public abstract getColumnInformation(tableName: string, db: DatabaseAccess): Promise<ColumnInfo[]>;
-	public abstract getTableNames(db: DatabaseAccess): Promise<string[]>;
 	
-	public columnDefinition(tableName: string, type: string, defaultValue: string, isPrimaryKey: boolean): string {
-		const query = `${tableName} ${type} DEFAULT ${defaultValue}`;
+	public columnDefinition(columnName: string, type: string, defaultValue: string, isPrimaryKey: boolean): string {
+		const query = `${columnName} ${type} DEFAULT ${defaultValue}`;
 		return isPrimaryKey ? `${query} PRIMARY KEY` : query;
 	}
 	public createColumn(columnTable: string, entry: string): string {
@@ -92,5 +93,34 @@ export default abstract class DefaultSql {
 	}
 	public insertValues(keys: string[], valueString?: string) {
 		return `(${keys}) ${valueString ?? `VALUES (${keys.map(() => "?").join(",")})`}`;
+	}
+	
+	protected migrationTableQuery(): string {
+		return this.createTable(MIGRATION_DATA_TABLE_NAME, [
+			this.columnDefinition("version", this.typeInt, "0", false)
+		]);
+	}
+	protected async createMigrationTableIfNeeded(db: DatabaseAccess): Promise<void> {
+		await db.runMultipleWriteStatements(this.migrationTableQuery());
+	}
+	
+	public abstract getTableNames(db: DatabaseAccess): Promise<string[]>;
+	
+	//TODO: untested
+	public async getVersion(db: DatabaseAccess): Promise<number> {
+		await this.createMigrationTableIfNeeded(db);
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["version"]);
+		const data = await db.runGetStatement(query) as {version: number}[];
+		return data.length ? data[0].version : 0;
+	}
+	//TODO: untested
+	public async setVersion(db: DatabaseAccess, newVersion: number): Promise<void> {
+		const query = `${this.migrationTableQuery()};
+INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (version) VALUES ${newVersion} WHERE NOT EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME})
+UNION ALL
+UPDATE ${MIGRATION_DATA_TABLE_NAME} SET version = ${newVersion} WHERE EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME});
+`;
+		await db.runMultipleWriteStatements(query);
+		
 	}
 }

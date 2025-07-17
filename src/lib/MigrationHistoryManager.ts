@@ -13,7 +13,6 @@ const FILENAME_DOWN_PREFIX = "down_to_";
 export default class MigrationHistoryManager {
 	private readonly configPath: string;
 	private readonly migrationsPath: string;
-	private lastVersion: number = 0;
 	
 	constructor(configPath: string) {
 		this.configPath = configPath;
@@ -23,39 +22,14 @@ export default class MigrationHistoryManager {
 	}
 	
 	/**
-	 * Retrieves the last recorded history version from the configuration path.
-	 * If the version is not already cached in memory, this method reads it from a file on disk.
-	 *
-	 * @return The last version number, or 0 if the version file does not exist or cannot be parsed.
-	 */
-	public getLastHistoryVersion(): number {
-		if(this.lastVersion)
-			return this.lastVersion;
-		const path = `${this.configPath}/last_version.txt`;
-		this.lastVersion = existsSync(path)
-			? parseInt(readFileSync(`${this.configPath}/last_version.txt`, {encoding: 'utf-8'})) ?? 0
-			: 0;
-		
-		return this.lastVersion;
-	}
-	/**
-	 * Updates the "last history version" information by writing the given version to a file.
-	 *
-	 * @param version - The version number to set as the last history version.
-	 */
-	public setLastHistoryVersion(version: number): void {
-		writeFileSync(`${this.configPath}/last_version.txt`, version.toString(), {encoding: 'utf-8'});
-	}
-	
-	/**
 	 * Creates migration history files for upgrading and downgrading database schemas.
 	 *
+	 * @param fromVersion - The current version number of the database.
 	 * @param toVersion - The target version number for the migration.
 	 * @param changes - An object containing the SQL changes for upgrading (`changes.up`) and downgrading (`changes.down`).
 	 * @param overwriteExisting - A flag that determines if existing migration files should be overwritten. Defaults to `false`.
 	 */
-	public createMigrationHistory(toVersion: number, changes: SqlChanges, overwriteExisting?: boolean): void {
-		const fromVersion = this.getLastHistoryVersion();
+	public createMigrationHistory(fromVersion: number, toVersion: number, changes: SqlChanges, overwriteExisting?: boolean): void {
 		const upPath = `${this.migrationsPath}/${FILENAME_UP_PREFIX}${toVersion}.sql`;
 		const downPath = `${this.migrationsPath}/${FILENAME_DOWN_PREFIX}${fromVersion}.sql`;
 		
@@ -77,8 +51,8 @@ export default class MigrationHistoryManager {
 	 * @param toVersion - The version of the migration script to retrieve. If not specified, the latest version is used.
 	 * @return The content of the SQL migration script as a string.
 	 */
-	public getUpMigration(toVersion?: number): string {
-		return readFileSync(`${this.migrationsPath}/${FILENAME_UP_PREFIX}${toVersion ?? this.getLastHistoryVersion()}.sql`, {encoding: 'utf-8'});
+	public getUpMigration(toVersion: number): string {
+		return readFileSync(`${this.migrationsPath}/${FILENAME_UP_PREFIX}${toVersion}.sql`, {encoding: 'utf-8'});
 	}
 	/**
 	 * Retrieves the SQL migration script for downgrading to the specified version.

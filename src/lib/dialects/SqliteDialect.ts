@@ -53,4 +53,13 @@ export default class SqliteDialect extends DefaultSql {
 				return value.toString();
 		}
 	}
+	
+	public async getVersion(db: DatabaseAccess): Promise<number> {
+		const output = await db.runGetStatement(`PRAGMA user_version;`) as [{user_version: number}];
+		
+		return output[0].user_version as number;
+	}
+	public async setVersion(db: DatabaseAccess, newVersion: number): Promise<void> {
+		await db.runMultipleWriteStatements(`PRAGMA user_version = ${newVersion};`)
+	}
 }

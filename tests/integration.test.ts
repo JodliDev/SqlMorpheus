@@ -97,7 +97,8 @@ describe("Integration tests", () => {
 	
 	test("Sqlite", async () => {
 		const path = `${configPath}testDb.db`;
-		fs.unlinkSync(path);
+		if(fs.existsSync(path))
+			fs.unlinkSync(path);
 		console.log(`Using db at ${path}`);
 		const db = new BetterSqlite3(path);
 		

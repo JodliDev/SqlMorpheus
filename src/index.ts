@@ -5,6 +5,7 @@ import MigrationHistoryManager from "./lib/MigrationHistoryManager";
 import {Logger} from "./lib/Logger";
 import DbTable from "./lib/tableInfo/decorators/DbTable";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey";
+import getDialect from "./lib/getDialect";
 
 export async function prepareMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
 	Logger.setMode(instructions.loggerMode);
@@ -15,8 +16,8 @@ export async function prepareMigration(db: DatabaseAccess, instructions: Databas
 export async function runPreparedMigrations(db: DatabaseAccess, instructions: DatabaseInstructions) {
 	Logger.setMode(instructions.loggerMode);
 	const migrationHistoryManager = new MigrationHistoryManager(instructions.configPath);
-	
-	const fromVersion = migrationHistoryManager.getLastHistoryVersion();
+	const dialect = getDialect(instructions);
+	const fromVersion = await dialect.getVersion(db);
 	const toVersion = instructions.version;
 	if(fromVersion == toVersion)
 		return;
@@ -28,7 +29,7 @@ export async function runPreparedMigrations(db: DatabaseAccess, instructions: Da
 		await db.runMultipleWriteStatements(upChanges);
 		instructions.version = i;
 	}
-	migrationHistoryManager.setLastHistoryVersion(toVersion);
+	await dialect.setVersion(db, toVersion);
 }
 
 export async function prepareAndRunMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
@@ -49,7 +50,8 @@ export async function runMigrationWithoutHistory(db: DatabaseAccess, instruction
 export async function rollback(db: DatabaseAccess, instructions: DatabaseInstructions, toVersion: number) {
 	Logger.setMode(instructions.loggerMode);
 	const migrationHistoryManager = new MigrationHistoryManager(instructions.configPath);
-	const fromVersion = migrationHistoryManager.getLastHistoryVersion();
+	const dialect = getDialect(instructions);
+	const fromVersion = await dialect.getVersion(db);
 	
 	Logger.log(`Rolling back from ${fromVersion} to ${toVersion}`);
 	for(let i= fromVersion - 1; i >= toVersion; --i) {
@@ -58,6 +60,6 @@ export async function rollback(db: DatabaseAccess, instructions: DatabaseInstruc
 		await db.runMultipleWriteStatements(upChanges);
 		instructions.version = i;
 	}
-	migrationHistoryManager.setLastHistoryVersion(toVersion);
+	await dialect.setVersion(db, toVersion);
 }
 export {DbTable, ForeignKey, DatabaseInstructions};

@@ -5,13 +5,10 @@ import {Migrations} from "./typings/Migrations";
 import {DatabaseAccess} from "./typings/DatabaseAccess";
 import MigrationHistoryManager from "./MigrationHistoryManager";
 import DefaultSql from "./dialects/DefaultSql";
-import SqliteDialect from "./dialects/SqliteDialect";
 import {SqlChanges} from "./typings/SqlChanges";
 import {ForeignKeyInfo} from "./typings/ForeignKeyInfo";
-import PostgresDialect from "./dialects/PostgresDialect";
-import MsSqlDialect from "./dialects/MsSqlDialect";
-import MySqlDialect from "./dialects/MySqlDialect";
 import {Logger} from "./Logger";
+import getDialect from "./getDialect";
 
 
 /**
@@ -30,23 +27,7 @@ export class MigrationManager {
 	private readonly dialect: DefaultSql;
 	
 	constructor(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
-		switch(dbInstructions.dialect) {
-			case "Sqlite":
-				this.dialect = new SqliteDialect();
-				break;
-			case "Postgres":
-				this.dialect = new PostgresDialect();
-				break;
-			case "MsSql":
-				this.dialect = new MsSqlDialect();
-				break;
-			case "MySql":
-				this.dialect = new MySqlDialect();
-				break;
-			default:
-				throw new Error(`Unknown dialect ${dbInstructions.dialect}`);
-		}
-		
+		this.dialect = getDialect(dbInstructions);
 		this.db = db;
 		this.dbInstructions = dbInstructions;
 		this.tableStructureGenerator = new TableStructureGenerator(dbInstructions, this.dialect);
@@ -68,7 +49,7 @@ export class MigrationManager {
 		if(this.dbInstructions.version <= 0)
 			throw new Error("Cannot migrate to version 0 or lower");
 		
-		const fromVersion = this.migrationHistoryManager.getLastHistoryVersion();
+		const fromVersion = await this.dialect.getVersion(this.db);
 		if(fromVersion == 0) {
 			Logger.log(`Creating initial migration to version ${this.dbInstructions.version}`);
 			return this.createAndDropTables();
@@ -144,8 +125,8 @@ export class MigrationManager {
 		const changes = await this.getMigrateSql();
 		if(!changes)
 			return;
-		
-		this.migrationHistoryManager.createMigrationHistory(this.dbInstructions.version, changes, overwriteExisting);
+		const fromVersion = await this.dialect.getVersion(this.db);
+		this.migrationHistoryManager.createMigrationHistory(fromVersion, this.dbInstructions.version, changes, overwriteExisting);
 	}
 	
 	/**
