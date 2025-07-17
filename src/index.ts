@@ -37,6 +37,15 @@ export async function prepareAndRunMigration(db: DatabaseAccess, instructions: D
 	await runPreparedMigrations(db, instructions);
 }
 
+export async function runMigrationWithoutHistory(db: DatabaseAccess, instructions: DatabaseInstructions) {
+	Logger.setMode(instructions.loggerMode);
+	const mm = new MigrationManager(db, instructions);
+	const changes = await mm.getMigrateSql();
+	
+	if(changes)
+		await db.runMultipleWriteStatements(changes.up);
+}
+
 export async function rollback(db: DatabaseAccess, instructions: DatabaseInstructions, toVersion: number) {
 	Logger.setMode(instructions.loggerMode);
 	const migrationHistoryManager = new MigrationHistoryManager(instructions.configPath);
@@ -51,4 +60,4 @@ export async function rollback(db: DatabaseAccess, instructions: DatabaseInstruc
 	}
 	migrationHistoryManager.setLastHistoryVersion(toVersion);
 }
-export {DbTable, ForeignKey};
+export {DbTable, ForeignKey, DatabaseInstructions};
