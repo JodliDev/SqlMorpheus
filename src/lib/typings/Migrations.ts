@@ -3,12 +3,17 @@ import AllowedMigrations from "./AllowedMigrations";
 import MigrationInstructions from "./MigrationInstructions";
 import MigrationNotAllowedException from "../exceptions/NotAllowedException";
 import DatabaseInstructions from "./DatabaseInstructions";
+import {SqlChanges} from "./SqlChanges";
+import {Logger} from "../Logger";
+
+export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
 
 export class Migrations {
 	private toVersion: number = 0;
 	private alwaysAllowed: AllowedMigrations = {};
 	private fromVersion: number = 0;
 	private migrationData: Record<string, MigrationInstructions> = {};
+	private notAllowedChanges: NotAllowedChangeEntry[] = [];
 	
 	
 	public reset(dbInstructions: DatabaseInstructions, fromVersion: number) {
@@ -16,6 +21,7 @@ export class Migrations {
 		this.migrationData = {};
 		this.toVersion = dbInstructions.version;
 		this.alwaysAllowed = dbInstructions.alwaysAllowedMigrations ?? {};
+		this.notAllowedChanges = [];
 	}
 	
 	private getEntry(table: string | Class<BackendTable>): MigrationInstructions {
@@ -33,9 +39,22 @@ export class Migrations {
 		return typeof table == "string" ? table : table.name;
 	}
 	
-	public throwIfNotAllowed(tableName: string, type: keyof AllowedMigrations): void {
+	public verifyMigration(tableName: string, type: keyof AllowedMigrations): void {
 		if(!this.migrationData[tableName]?.allowedMigrations[type] && !this.alwaysAllowed[type])
-			throw new MigrationNotAllowedException(this.toVersion, tableName, type);
+			this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, type: type});
+	}
+	public checkIfAllowed(throwIfNotAllowed: boolean, changes: SqlChanges): boolean {
+		if(!this.notAllowedChanges.length)
+			return true;
+		Logger.debug(`\nCanceled changes:\n${changes.up}\n`);
+		const exception = new MigrationNotAllowedException(this.notAllowedChanges);
+		
+		if(throwIfNotAllowed)
+			throw exception;
+		else {
+			console.error(exception.message);
+			return false;
+		}
 	}
 	
 	public allowMigration(version: number, table: string | Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {

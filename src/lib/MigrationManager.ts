@@ -115,6 +115,10 @@ export class MigrationManager {
 		changes.up += `\n\n${foreignKeyOnQuery}`;
 		changes.down += `\n\n${foreignKeyOnQuery}`;
 		
+		if(!this.migrations.checkIfAllowed(dbInstructions.throwIfNotAllowed, changes)) {
+			return null;
+		}
+		
 		return {
 			fromVersion:fromVersion,
 			toVersion:toVersion,
@@ -148,9 +152,9 @@ export class MigrationManager {
 		
 		for(const tableName of this.existingTables) {
 			if(!this.newTables[tableName]) {
-				this.migrations.throwIfNotAllowed(tableName, "dropTable");
+				this.migrations.verifyMigration(tableName, "dropTable");
 				if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-					this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
+					this.migrations.verifyMigration(tableName, "continueWithoutRollback");
 				
 				changes.up += `${this.dialect.dropTable(tableName)}\n`;
 				changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
@@ -217,9 +221,9 @@ export class MigrationManager {
 			if(!migrationEntry.recreate)
 				continue;
 			
-			this.migrations.throwIfNotAllowed(tableName, "recreateTable");
+			this.migrations.verifyMigration(tableName, "recreateTable");
 			if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-				this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
+				this.migrations.verifyMigration(tableName, "continueWithoutRollback");
 				
 			const oldColumnList = await this.dialect.getColumnInformation(tableName);
 			const newColumnList = this.newTables[tableName].columns;
@@ -280,7 +284,7 @@ export class MigrationManager {
 				//Check for removed foreign key:
 				if(!newForeignKey) {
 					Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was removed!`);
-					this.migrations.throwIfNotAllowed(tableName, "removeForeignKey");
+					this.migrations.verifyMigration(tableName, "removeForeignKey");
 					if(this.dialect.canAlterForeignKeys) {
 						changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn);
 						changes.down += this.dialect.addForeignKey(
@@ -301,7 +305,7 @@ export class MigrationManager {
 						|| ((oldForeignKey.onDelete ?? "NO ACTION") != (newForeignKey.onDelete ?? "NO ACTION"))
 					) {
 						Logger.log(`Foreign key ${oldForeignKey.toTable}.${oldForeignKey.toColumn} to ${oldForeignKey.toTable}.${oldForeignKey.toColumn} was changed!`);
-						this.migrations.throwIfNotAllowed(tableName, "alterForeignKey");
+						this.migrations.verifyMigration(tableName, "alterForeignKey");
 						if(this.dialect.canAlterForeignKeys) {
 							changes.up += this.dialect.removeForeignKey(oldForeignKey.fromTable, oldForeignKey.fromColumn)
 								+ this.dialect.addForeignKey(
@@ -375,7 +379,7 @@ export class MigrationManager {
 			//Search for changed primary key:
 			if(this.dialect.canInspectPrimaryKey && oldPrimaryKey != newPrimaryKey) {
 				Logger.log(`Primary key in ${tableName} was changed from ${oldPrimaryKey} to ${newPrimaryKey}!`);
-				this.migrations.throwIfNotAllowed(tableName, "alterPrimaryKey");
+				this.migrations.verifyMigration(tableName, "alterPrimaryKey");
 				if(this.dialect.canAlterPrimaryKey) {
 					if(oldPrimaryKey) {
 						changes.up += this.dialect.removePrimaryKey(tableName, oldPrimaryKey);
@@ -412,7 +416,7 @@ export class MigrationManager {
 					entry.name == this.migrations.getUpdatedColumnName(tableName, oldColumn.name)
 				);
 				if(newColumn == undefined) {
-					this.migrations.throwIfNotAllowed(tableName, "dropColumn");
+					this.migrations.verifyMigration(tableName, "dropColumn");
 					changes.up += this.dialect.dropColumn(tableName, oldColumn.name) + "\n";
 					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.type, oldColumn.defaultValue, oldColumn.isPrimaryKey)) + "\n";
 				}

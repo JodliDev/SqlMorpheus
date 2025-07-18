@@ -5,6 +5,7 @@ import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
 import {SqlChanges} from "../src";
 import DefaultSql from "../src/lib/dialects/DefaultSql";
 import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
+import NotAllowedException from "../src/lib/exceptions/NotAllowedException";
 
 class DefaultDialect extends DefaultSql {
 	getColumnInformation(_: string): Promise<ColumnInfo[]> {
@@ -33,6 +34,7 @@ describe("MigrationManager", () => {
 			version: 1,
 			configPath: `${process.cwd()}/config/`,
 			tables: {},
+			throwIfNotAllowed: true,
 			preMigration: vi.fn(),
 			postMigration: vi.fn(),
 		};
@@ -140,5 +142,33 @@ describe("MigrationManager", () => {
 		//check results:
 		const result = await manager.generateSqlChanges({...mockDbInstructions, version: 2});
 		expect(result?.changes.up).toContain("ALTER TABLE TableA RENAME COLUMN oldColumnA TO newColumnA");
+	});
+	
+	it("should throw if not allowed", async() => {
+		//alter DatabaseInstructions:
+		mockDbInstructions.tables = [];
+		mockDbInstructions.preMigration = (migrations) => {
+			migrations.allowMigration(2, "TableA", "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
+		}
+		
+		//alter dialect:
+		mockDialect.getVersion = () => Promise.resolve(1);
+		mockDialect.getTableNames = () => Promise.resolve(["TableA"]);
+		mockDialect.getColumnInformation = () => Promise.resolve([
+			{
+				name: "oldColumnA",
+				type: mockDialect.typeString,
+				defaultValue: "\"\"",
+				isPrimaryKey: false
+			}
+		]);
+		
+		//setup manager
+		const manager = new MigrationManager(mockDialect);
+		
+		//check results:
+		await expect(
+			manager.generateSqlChanges({...mockDbInstructions, version: 2})
+		).rejects.toThrow(new NotAllowedException([{version: 2, tableName: "TableA", type: "dropTable"}]));
 	});
 });

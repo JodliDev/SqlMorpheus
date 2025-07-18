@@ -32,6 +32,7 @@ describe("Integration tests", () => {
 				alterPrimaryKey: true,
 				recreateTable: true
 			},
+			throwIfNotAllowed: true,
 		} satisfies DatabaseInstructions;
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);

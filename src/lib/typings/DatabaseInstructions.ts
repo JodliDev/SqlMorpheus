@@ -10,6 +10,7 @@ export default interface DatabaseInstructions {
 	tables: Class<BackendTable>[] | TableObjects;
 	version: number;
 	configPath: string;
+	throwIfNotAllowed: boolean;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
 	alwaysAllowedMigrations?: AllowedMigrations;
 	
