@@ -5,6 +5,7 @@ import {ColumnInfo} from "../typings/ColumnInfo";
 const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
 
 export default abstract class DefaultSql {
+	protected readonly db: DatabaseAccess;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	public canInspectForeignKeys: boolean = false;
@@ -16,15 +17,16 @@ export default abstract class DefaultSql {
 	public typeBoolean = "BOOLEAN";
 	public typeNull = "NULL";
 	
+	constructor(db: DatabaseAccess) {
+		this.db = db;
+	}
+	
 	public formatValueToSql(value: any): string {
 		return value.toString();
 	}
 	
 	public changeForeignKeysState(enabled: boolean): string {
 		return "";
-	}
-	public async getForeignKeys(tableName: string, db: DatabaseAccess): Promise<ForeignKeyInfo[]> {
-		throw new Error("Inspecting foreign keys is not supported!");
 	}
 	
 	public addForeignKey(fromTableName: string, foreignKey: string): string {
@@ -62,8 +64,6 @@ export default abstract class DefaultSql {
 		return `DROP TABLE IF EXISTS ${tableName};`
 	}
 	
-	public abstract getColumnInformation(tableName: string, db: DatabaseAccess): Promise<ColumnInfo[]>;
-	
 	public columnDefinition(columnName: string, type: string, defaultValue: string, isPrimaryKey: boolean): string {
 		const query = `${columnName} ${type} DEFAULT ${defaultValue}`;
 		return isPrimaryKey ? `${query} PRIMARY KEY` : query;
@@ -72,7 +72,7 @@ export default abstract class DefaultSql {
 		return `ALTER TABLE ${columnTable} ADD ${entry};`
 	}
 	public renameColumn(tableName: string, oldColumnName: string, newColumnName: string): string {
-		return `ALTER TABLE ${tableName} RENAME COLUMN ${newColumnName} TO ${oldColumnName};`
+		return `ALTER TABLE ${tableName} RENAME COLUMN ${oldColumnName} TO ${newColumnName};`
 	}
 	public copyColumn(tableName: string, oldColumnName: string, newColumnName: string): string {
 		return `UPDATE ${tableName} SET ${newColumnName} = ${oldColumnName};`
@@ -101,27 +101,35 @@ export default abstract class DefaultSql {
 			this.columnDefinition("version", this.typeInt, "0", false)
 		]);
 	}
-	protected async createMigrationTableIfNeeded(db: DatabaseAccess): Promise<void> {
-		await db.runMultipleWriteStatements(this.migrationTableQuery());
+	
+	
+	public abstract getColumnInformation(tableName: string): Promise<ColumnInfo[]>;
+	
+	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
+		throw new Error("Inspecting foreign keys is not supported!");
 	}
 	
-	public abstract getTableNames(db: DatabaseAccess): Promise<string[]>;
+	protected async createMigrationTableIfNeeded(): Promise<void> {
+		await this.db.runMultipleWriteStatements(this.migrationTableQuery());
+	}
+	
+	public abstract getTableNames(): Promise<string[]>;
 	
 	//TODO: untested
-	public async getVersion(db: DatabaseAccess): Promise<number> {
-		await this.createMigrationTableIfNeeded(db);
+	public async getVersion(): Promise<number> {
+		await this.createMigrationTableIfNeeded();
 		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["version"]);
-		const data = await db.runGetStatement(query) as {version: number}[];
+		const data = await this.db.runGetStatement(query) as {version: number}[];
 		return data.length ? data[0].version : 0;
 	}
 	//TODO: untested
-	public async setVersion(db: DatabaseAccess, newVersion: number): Promise<void> {
+	public async setVersion(newVersion: number): Promise<void> {
 		const query = `${this.migrationTableQuery()};
 INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (version) VALUES ${newVersion} WHERE NOT EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME})
 UNION ALL
 UPDATE ${MIGRATION_DATA_TABLE_NAME} SET version = ${newVersion} WHERE EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME});
 `;
-		await db.runMultipleWriteStatements(query);
+		await this.db.runMultipleWriteStatements(query);
 		
 	}
 }

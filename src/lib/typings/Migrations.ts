@@ -5,14 +5,17 @@ import MigrationNotAllowedException from "../exceptions/NotAllowedException";
 import DatabaseInstructions from "./DatabaseInstructions";
 
 export class Migrations {
-	public readonly toVersion: number;
-	public fromVersion: number = 0;
-	private readonly migrationData: Record<string, MigrationInstructions> = {};
-	private readonly alwaysAllowed: AllowedMigrations;
+	private toVersion: number = 0;
+	private alwaysAllowed: AllowedMigrations = {};
+	private fromVersion: number = 0;
+	private migrationData: Record<string, MigrationInstructions> = {};
 	
-	constructor(dbInstructions: DatabaseInstructions) {
+	
+	public reset(dbInstructions: DatabaseInstructions, fromVersion: number) {
+		this.fromVersion = fromVersion;
+		this.migrationData = {};
 		this.toVersion = dbInstructions.version;
-		this.alwaysAllowed = dbInstructions.alwaysAllowed ?? {};
+		this.alwaysAllowed = dbInstructions.alwaysAllowedMigrations ?? {};
 	}
 	
 	private getEntry(table: string | Class<BackendTable>): MigrationInstructions {
@@ -65,12 +68,14 @@ export class Migrations {
 		else
 			entry.renamedColumns.push([oldColumn, newColumn]);
 	}
-	
+	public recreateTableImp(table: Class<BackendTable> | string) {
+		const entry = this.getEntry(table);
+		entry.recreate = true;
+	}
 	public recreateTable(version: number, table: Class<BackendTable> | string) {
 		if(version < this.fromVersion || version > this.toVersion)
 			return;
-		const entry = this.getEntry(table);
-		entry.recreate = true;
+		this.recreateTableImp(table);
 	}
 	
 	public getMigrationData(): Record<string, MigrationInstructions> {
@@ -93,7 +98,7 @@ export class Migrations {
 	}
 	
 	public getUpdatedColumnName(tableName: string, oldColumnName: string): string {
-		const columnNames = this.migrationData[tableName].renamedColumns.find((columns) => columns[0] == oldColumnName);
+		const columnNames = this.migrationData[tableName]?.renamedColumns.find((columns) => columns[0] == oldColumnName);
 		return columnNames ? columnNames[columnNames.length - 1] : oldColumnName;
 	}
 	

@@ -2,14 +2,17 @@ import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {ColumnInfo} from "./typings/ColumnInfo";
 import TableStructureGenerator from "./TableStructureGenerator";
 import {Migrations} from "./typings/Migrations";
-import {DatabaseAccess} from "./typings/DatabaseAccess";
-import MigrationHistoryManager from "./MigrationHistoryManager";
 import DefaultSql from "./dialects/DefaultSql";
 import {SqlChanges} from "./typings/SqlChanges";
 import {ForeignKeyInfo} from "./typings/ForeignKeyInfo";
 import {Logger} from "./Logger";
-import getDialect from "./getDialect";
+import {TableStructure} from "./typings/TableStructure";
 
+export type MigrationOutput = {
+	fromVersion: number;
+	toVersion: number;
+	changes: SqlChanges
+};
 
 /**
  * The MigrationManager class is responsible for managing database schema migrations.
@@ -17,22 +20,14 @@ import getDialect from "./getDialect";
  * and synchronizing database schema changes between different versions.
  */
 export class MigrationManager {
-	private readonly migrations: Migrations;
-	private readonly toVersion: number;
-	
-	private readonly tableStructureGenerator: TableStructureGenerator;
+	private readonly migrations = new Migrations();
+	private newTables: Record<string, TableStructure> = {};
 	private existingTables: string[] = [];
-	private readonly db: DatabaseAccess;
-	private readonly dbInstructions: DatabaseInstructions;
+	
 	private readonly dialect: DefaultSql;
 	
-	constructor(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
-		this.toVersion = dbInstructions.version;
-		this.migrations = new Migrations(dbInstructions);
-		this.dialect = getDialect(dbInstructions);
-		this.db = db;
-		this.dbInstructions = dbInstructions;
-		this.tableStructureGenerator = new TableStructureGenerator(dbInstructions, this.dialect);
+	constructor(dialect: DefaultSql) {
+		this.dialect = dialect;
 	}
 	
 	/**
@@ -46,91 +41,87 @@ export class MigrationManager {
 	 * Throws an error in scenarios such as attempting to migrate to a lower version
 	 * or an invalid starting version.
 	 */
-	public async getMigrateSql(): Promise<SqlChanges | null> {
-		if(this.toVersion <= 0)
+	public async generateSqlChanges(dbInstructions: DatabaseInstructions): Promise<MigrationOutput | null> {
+		const fromVersion = await this.dialect.getVersion();
+		const toVersion = dbInstructions.version;
+		
+		if(toVersion <= 0)
 			throw new Error("Cannot migrate to version 0 or lower");
-		
-		const fromVersion = await this.dialect.getVersion(this.db);
-		this.migrations.fromVersion = fromVersion;
-		if(fromVersion == 0) {
-			Logger.log(`Creating initial migration to version ${this.dbInstructions.version}`);
-			return this.createAndDropTables();
-		}
-		
-		if(fromVersion == this.toVersion) {
+		if(fromVersion == toVersion) {
 			Logger.log("Version has not changed. No migrations needed.")
 			return null;
 		}
-		if(fromVersion > this.toVersion)
-			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${this.toVersion})`);
+		if(fromVersion > toVersion)
+			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${toVersion})`);
 		
-		Logger.log(`Creating migration SQL from version ${fromVersion} to ${this.toVersion}`);
-		
-		const db = this.db;
-		await db.createBackup?.(`from_${fromVersion}_to_${this.toVersion}`);
-		
-		this.existingTables = await this.dialect.getTableNames(this.db);
-		
+		//disable foreign keys to prevent errors:
 		const foreignKeyOffQuery = this.dialect.changeForeignKeysState(false);
 		const changes = {
 			up: foreignKeyOffQuery,
 			down: foreignKeyOffQuery
 		} satisfies SqlChanges;
+		this.migrations.reset(dbInstructions, fromVersion);
 		
 		//Run pre-migrations:
-		const preSQL = this.dbInstructions.preMigration?.(
+		const preSQL = dbInstructions.preMigration?.(
 			this.migrations,
 			fromVersion,
-			this.toVersion,
+			toVersion,
 		);
 		if(preSQL) {
 			changes.up += `\n\n-- Custom SQL from preMigration()\n${preSQL.up}`;
 			changes.down += `\n\n-- Custom SQL from preMigration()\n${preSQL.down}`;
 		}
 		
-		[
-			await this.createAndDropTables(),
-			await this.migrateForeignKeys(),
-			await this.migrateColumns(),
-			this.renameColumns(),
-			await this.recreateTables()
-		].forEach(entry => {
-			changes.up += entry.up;
-			changes.down += entry.down;
-		})
+		//generate new table structure:
+		const tableStructureGenerator = new TableStructureGenerator(dbInstructions, this.dialect);
+		this.newTables = tableStructureGenerator.generateTableStructure();
+		
+		//generate migrations:
+		
+		if(fromVersion == 0) {
+			Logger.log(`Creating initial migration to version ${dbInstructions.version}`);
+			
+			const initialChanges = await this.createAndDropTables();
+			changes.up += initialChanges.up;
+			changes.down += initialChanges.down;
+		}
+		else {
+			Logger.log(`Creating migration SQL from version ${fromVersion} to ${toVersion}`);
+			
+			this.existingTables = await this.dialect.getTableNames();
+			
+			[
+				await this.createAndDropTables(),
+				await this.migrateForeignKeys(),
+				await this.migrateColumns(),
+				this.renameColumns(),
+				await this.recreateTables()
+			].forEach(entry => {
+				changes.up += entry.up;
+				changes.down += entry.down;
+			})
+		}
 		
 		//Run post-migrations:
-		const postSql = this.dbInstructions.postMigration?.(fromVersion, this.toVersion);
+		const postSql = dbInstructions.postMigration?.(fromVersion, toVersion);
 		if(postSql) {
 			changes.up += `\n\n-- Custom SQL from postMigration()\n${postSql.up}`;
 			changes.down += `\n\n-- Custom SQL from postMigration()\n${postSql.down}`;
 		}
-		
 		
 		//Enable foreign key constraints again:
 		const foreignKeyOnQuery = this.dialect.changeForeignKeysState(true);
 		changes.up += `\n\n${foreignKeyOnQuery}`;
 		changes.down += `\n\n${foreignKeyOnQuery}`;
 		
-		return changes;
+		return {
+			fromVersion:fromVersion,
+			toVersion:toVersion,
+			changes: changes
+		};
 	}
 	
-	
-	/**
-	 * Prepares the migration by generating the SQL changes and creating a migration history entry.
-	 * If no changes are needed, the method exits early.
-	 *
-	 * @param overwriteExisting - Optional flag indicating if overwriting existing changes is allowed.
-	 * @return - A promise that resolves once the migration preparation is complete.
-	 */
-	public async prepareMigration(overwriteExisting?: boolean): Promise<void> {
-		const changes = await this.getMigrateSql();
-		if(!changes)
-			return;
-		const fromVersion = await this.dialect.getVersion(this.db);
-		const migrationHistoryManager = new MigrationHistoryManager(this.dbInstructions.configPath);
-		migrationHistoryManager.createMigrationHistory(fromVersion, this.toVersion, changes, overwriteExisting);
-	}
 	
 	/**
 	 * Generates SQL change statements for creating and dropping tables based on the current table structure
@@ -147,23 +138,23 @@ export class MigrationManager {
 			down: "\n\n-- Create tables\n"
 		} satisfies SqlChanges;
 		
-		for(const tableName in this.tableStructureGenerator.tables) {
+		for(const tableName in this.newTables) {
 			if(this.tableDoesNotExists(tableName)) {
-				const structure = this.tableStructureGenerator.tables[tableName];
+				const structure = this.newTables[tableName];
 				changes.up += `${this.createTableSql(tableName, structure.columns, structure.foreignKeys)}\n`;
 				changes.down += `${this.dialect.dropTable(tableName)}\n`;
 			}
 		}
 		
 		for(const tableName of this.existingTables) {
-			if(!this.tableStructureGenerator.tables[tableName]) {
+			if(!this.newTables[tableName]) {
 				this.migrations.throwIfNotAllowed(tableName, "dropTable");
 				if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
 					this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
 				
 				changes.up += `${this.dialect.dropTable(tableName)}\n`;
 				changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
-					? this.createTableSql(tableName, await this.dialect.getColumnInformation(tableName, this.db), await this.dialect.getForeignKeys(tableName, this.db))
+					? this.createTableSql(tableName, await this.dialect.getColumnInformation(tableName), await this.dialect.getForeignKeys(tableName))
 					: "\n\n-- Cannot recreate foreign keys or load primary keys with this database! Table will not be recreated!\n";
 			}
 		}
@@ -230,8 +221,8 @@ export class MigrationManager {
 			if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
 				this.migrations.throwIfNotAllowed(tableName, "continueWithoutRollback");
 				
-			const oldColumnList = await this.dialect.getColumnInformation(tableName, this.db);
-			const newColumnList = this.tableStructureGenerator.tables[tableName].columns;
+			const oldColumnList = await this.dialect.getColumnInformation(tableName);
+			const newColumnList = this.newTables[tableName].columns;
 			const moveableColumns = newColumnList
 				.filter(entry => oldColumnList.find(oldEntry => oldEntry.name == entry.name) != undefined)
 				.map(entry => entry.name);
@@ -247,13 +238,13 @@ export class MigrationManager {
 				+ "\n"
 				+ this.dialect.renameTable(backupTableName, tableName);
 			
-			const structure = this.tableStructureGenerator.tables[tableName];
+			const structure = this.newTables[tableName];
 			changes.up += this.createTableSql(backupTableName, structure.columns, structure.foreignKeys)
 				+ "\n"
 				+ moveDataQuery
 			
 			changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
-				? this.createTableSql(backupTableName, await this.dialect.getColumnInformation(tableName, this.db), await this.dialect.getForeignKeys(tableName, this.db))
+				? this.createTableSql(backupTableName, await this.dialect.getColumnInformation(tableName), await this.dialect.getForeignKeys(tableName))
 				+ "\n"
 				+ moveDataQuery
 				: "\n\n-- Cannot recreate foreign keys or load primary keys with this database! Table will not be recreated!\n";
@@ -274,12 +265,12 @@ export class MigrationManager {
 			down: "\n\n-- Foreign keys\n"
 		} satisfies SqlChanges;
 		
-		for(const tableName in this.tableStructureGenerator.tables) {
+		for(const tableName in this.newTables) {
 			if(this.migrations.willBeRecreated(tableName) || this.tableDoesNotExists(tableName))
 				continue;
-			const structure = this.tableStructureGenerator.tables[tableName];
+			const structure = this.newTables[tableName];
 			const newForeignKeys = structure.foreignKeys ?? [];
-			const oldForeignKeys = await this.dialect.getForeignKeys(tableName, this.db);
+			const oldForeignKeys = await this.dialect.getForeignKeys(tableName);
 			
 			let checkForNewForeignKeys = true;
 			
@@ -298,7 +289,7 @@ export class MigrationManager {
 						);
 					}
 					else {
-						this.migrations.recreateTable(this.toVersion, structure.table);
+						this.migrations.recreateTableImp(structure.table);
 						checkForNewForeignKeys = false;
 					}
 				}
@@ -324,7 +315,7 @@ export class MigrationManager {
 							
 						}
 						else {
-							this.migrations.recreateTable(this.toVersion, structure.table);
+							this.migrations.recreateTableImp(structure.table);
 							checkForNewForeignKeys = false;
 						}
 					}
@@ -348,7 +339,7 @@ export class MigrationManager {
 						
 						changes.down += this.dialect.removeForeignKey(newForeignKey.fromTable, newForeignKey.fromColumn);
 					} else {
-						this.migrations.recreateTable(this.toVersion, structure.table);
+						this.migrations.recreateTableImp(structure.table);
 						break;
 					}
 				}
@@ -368,13 +359,13 @@ export class MigrationManager {
 			down: "\n\n-- Migrate columns\n"
 		} satisfies SqlChanges;
 		
-		for(const tableName in this.tableStructureGenerator.tables) {
+		for(const tableName in this.newTables) {
 			if(this.migrations.willBeRecreated(tableName) || this.tableDoesNotExists(tableName))
 				continue;
 			
-			const newTableDefinition = this.tableStructureGenerator.tables[tableName];
+			const newTableDefinition = this.newTables[tableName];
 			
-			const oldColumnList = await this.dialect.getColumnInformation(tableName, this.db);
+			const oldColumnList = await this.dialect.getColumnInformation(tableName);
 			
 			const oldPrimaryKey = this.dialect.canInspectPrimaryKey ? this.getPrimaryKeyColumn(oldColumnList) : false;
 			
@@ -396,7 +387,7 @@ export class MigrationManager {
 					}
 				}
 				else
-					this.migrations.recreateTable(this.toVersion, newTableDefinition.table);
+					this.migrations.recreateTableImp(newTableDefinition.table);
 				continue;
 			}
 			
@@ -411,7 +402,7 @@ export class MigrationManager {
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
 				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
-					this.migrations.recreateTable(this.toVersion, newTableDefinition.table);
+					this.migrations.recreateTableImp(newTableDefinition.table);
 				}
 			}
 			

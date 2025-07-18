@@ -9,38 +9,44 @@ import {TableObjects} from "./tableInfo/TableObjects";
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
-	public readonly tables: Record<string, TableStructure> = {}
+	private readonly dbInstructions: DatabaseInstructions;
 	
-	constructor(dbContext: DatabaseInstructions, dialect: DefaultSql) {
+	constructor(dbInstructions: DatabaseInstructions, dialect: DefaultSql) {
 		this.dialect = dialect;
-		
-		if(dbContext.tables.length) {
+		this.dbInstructions = dbInstructions;
+	}
+	
+	public generateTableStructure(): Record<string, TableStructure> {
+		if(this.dbInstructions.tables.length) {
 			const tableObjects: TableObjects = {};
 			
-			for(const table of dbContext.tables as Class<BackendTable>[]) {
+			for(const table of this.dbInstructions.tables as Class<BackendTable>[]) {
 				tableObjects[table.name] = {columns: new table, tableInfo: getTableInfo(table)};
 			}
-			this.getExpectedStructure(tableObjects);
+			return this.getExpectedStructure(tableObjects);
 		}
 		else {
-			const tableObjects = dbContext.tables as TableObjects;
-			this.getExpectedStructure(tableObjects);
+			const tableObjects = this.dbInstructions.tables as TableObjects;
+			return this.getExpectedStructure(tableObjects);
 		}
 	}
 	
-	private getExpectedStructure(tableObjects: TableObjects): void {
+	private getExpectedStructure(tableObjects: TableObjects): Record<string, TableStructure> {
+		const tables: Record<string, TableStructure> = {};
 		for(const tableName in tableObjects) {
 			const obj = tableObjects[tableName];
 			const tableInfo = obj.tableInfo;
 			
 			
-			this.tables[tableName] = {
+			tables[tableName] = {
 				table: tableName,
 				primaryKey: tableInfo?.primaryKey,
 				columns: this.getColumns(obj.columns, tableInfo?.primaryKey),
 				foreignKeys: tableInfo?.foreignKeys
 			};
 		}
+		
+		return tables;
 	}
 	
 	

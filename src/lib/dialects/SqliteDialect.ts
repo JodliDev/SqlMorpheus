@@ -1,6 +1,5 @@
 import DefaultSql from "./DefaultSql";
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
-import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default class SqliteDialect extends DefaultSql {
@@ -14,27 +13,14 @@ export default class SqliteDialect extends DefaultSql {
 	public changeForeignKeysState(enabled: boolean): string {
 		return `PRAGMA foreign_keys = ${enabled ? "ON" : "OFF"};`;
 	}
-	public async getForeignKeys(tableName: string, db: DatabaseAccess): Promise<ForeignKeyInfo[]> {
-		const data = await db.runGetStatement(`PRAGMA foreign_key_list(${tableName});`);
-		return (data as Record<string, string>[]).map(entry => {
-			return {
-				fromTable: tableName,
-				fromColumn: entry["from"],
-				toTable: entry["table"],
-				toColumn: entry["to"],
-				on_update: entry["on_update"],
-				on_delete: entry["on_delete"],
-			}
-		});
-	}
 	
-	public async getTableNames(db: DatabaseAccess): Promise<string[]> {
-		return (await db.runGetStatement("SELECT name FROM sqlite_master WHERE type = 'table'") as Record<string, string>[])
+	public async getTableNames(): Promise<string[]> {
+		return (await this.db.runGetStatement("SELECT name FROM sqlite_master WHERE type = 'table'") as Record<string, string>[])
 			.map((obj) => obj.name);
 	}
 	
-	public async getColumnInformation(tableName: string, db: DatabaseAccess): Promise<ColumnInfo[]> {
-		const data = await db.runGetStatement(`PRAGMA table_info(${tableName})`);
+	public async getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
+		const data = await this.db.runGetStatement(`PRAGMA table_info(${tableName})`);
 		
 		return (data as Record<string, string>[]).map(entry => {
 			return {
@@ -55,12 +41,26 @@ export default class SqliteDialect extends DefaultSql {
 		}
 	}
 	
-	public async getVersion(db: DatabaseAccess): Promise<number> {
-		const output = await db.runGetStatement(`PRAGMA user_version;`) as [{user_version: number}];
+	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
+		const data = await this.db.runGetStatement(`PRAGMA foreign_key_list(${tableName});`);
+		return (data as Record<string, string>[]).map(entry => {
+			return {
+				fromTable: tableName,
+				fromColumn: entry["from"],
+				toTable: entry["table"],
+				toColumn: entry["to"],
+				on_update: entry["on_update"],
+				on_delete: entry["on_delete"],
+			}
+		});
+	}
+	
+	public async getVersion(): Promise<number> {
+		const output = await this.db.runGetStatement(`PRAGMA user_version;`) as [{user_version: number}];
 		
 		return output[0].user_version as number;
 	}
-	public async setVersion(db: DatabaseAccess, newVersion: number): Promise<void> {
-		await db.runMultipleWriteStatements(`PRAGMA user_version = ${newVersion};`)
+	public async setVersion(newVersion: number): Promise<void> {
+		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${newVersion};`)
 	}
 }

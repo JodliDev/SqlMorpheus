@@ -1,5 +1,4 @@
 import DefaultSql from "./DefaultSql";
-import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
 
 export default class PostgresDialect extends DefaultSql {
@@ -18,12 +17,12 @@ export default class PostgresDialect extends DefaultSql {
 		return `ALTER TABLE ${tableName} DROP CONSTRAINT ${foreignKeyName};`;
 	}
 	
-	public async getTableNames(db: DatabaseAccess): Promise<string[]> {
-		return await db.runGetStatement("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';") as string[];
+	public async getTableNames(): Promise<string[]> {
+		return await this.db.runGetStatement("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';") as string[];
 	}
 	
-	public async getColumnInformation(tableName: string, db: DatabaseAccess): Promise<ColumnInfo[]> {
-		const data = await db.runGetStatement(`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}';`);
+	public async getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
+		const data = await this.db.runGetStatement(`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}';`);
 		
 		return (data as Record<string, string>[]).map(entry => {
 			return {

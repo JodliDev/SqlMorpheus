@@ -3,17 +3,18 @@ import PostgresDialect from "./dialects/PostgresDialect";
 import MsSqlDialect from "./dialects/MsSqlDialect";
 import MySqlDialect from "./dialects/MySqlDialect";
 import DatabaseInstructions from "./typings/DatabaseInstructions";
+import {DatabaseAccess} from "./typings/DatabaseAccess";
 
-export default function getDialect(dbInstructions: DatabaseInstructions) {
+export default function getDialect(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
 	switch(dbInstructions.dialect) {
 		case "Sqlite":
-			return new SqliteDialect();
+			return new SqliteDialect(db);
 		case "Postgres":
-			return new PostgresDialect();
+			return new PostgresDialect(db);
 		case "MsSql":
-			return new MsSqlDialect();
+			return new MsSqlDialect(db);
 		case "MySql":
-			return new MySqlDialect();
+			return new MySqlDialect(db);
 		default:
 			throw new Error(`Unknown dialect ${dbInstructions.dialect}`);
 	}

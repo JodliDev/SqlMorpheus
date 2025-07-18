@@ -9,29 +9,37 @@ import getDialect from "./lib/getDialect";
 import {PublicMigrations} from "./lib/typings/Migrations";
 import {SqlChanges} from "./lib/typings/SqlChanges";
 
-export async function prepareMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
-	Logger.setMode(instructions.loggerMode);
-	const mm = new MigrationManager(db, instructions);
-	await mm.prepareMigration(overwriteExisting);
+export async function prepareMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
+	Logger.setMode(dbInstructions.loggerMode);
+	const dialect = getDialect(db, dbInstructions);
+	
+	const mm = new MigrationManager(dialect);
+	const migration = await mm.generateSqlChanges(dbInstructions);
+	
+	if(!migration)
+		return;
+	const migrationHistoryManager = new MigrationHistoryManager(dbInstructions.configPath);
+	migrationHistoryManager.createMigrationHistory(migration.fromVersion, dbInstructions.version, migration.changes, overwriteExisting);
 }
 
-export async function runPreparedMigrations(db: DatabaseAccess, instructions: DatabaseInstructions) {
-	Logger.setMode(instructions.loggerMode);
-	const migrationHistoryManager = new MigrationHistoryManager(instructions.configPath);
-	const dialect = getDialect(instructions);
-	const fromVersion = await dialect.getVersion(db);
-	const toVersion = instructions.version;
+export async function runPreparedMigrations(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
+	Logger.setMode(dbInstructions.loggerMode);
+	const historyManager = new MigrationHistoryManager(dbInstructions.configPath);
+	const dialect = getDialect(db, dbInstructions);
+	const fromVersion = await dialect.getVersion();
+	const toVersion = dbInstructions.version;
 	if(fromVersion == toVersion)
 		return;
 	
+	await db.createBackup?.(`from_${fromVersion}_to_${dbInstructions.version}`);
 	Logger.log(`Running migrations from ${fromVersion} to ${toVersion}`);
 	for(let i= fromVersion ? fromVersion + 1 : toVersion; i <= toVersion; ++i) {
-		const upChanges = migrationHistoryManager.getUpMigration(i);
+		const upChanges = historyManager.getUpMigration(i);
 		Logger.debug(upChanges);
 		await db.runMultipleWriteStatements(upChanges);
-		instructions.version = i;
+		dbInstructions.version = i;
 	}
-	await dialect.setVersion(db, toVersion);
+	await dialect.setVersion(toVersion);
 }
 
 export async function prepareAndRunMigration(db: DatabaseAccess, instructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {
@@ -40,29 +48,35 @@ export async function prepareAndRunMigration(db: DatabaseAccess, instructions: D
 	await runPreparedMigrations(db, instructions);
 }
 
-export async function runMigrationWithoutHistory(db: DatabaseAccess, instructions: DatabaseInstructions) {
-	Logger.setMode(instructions.loggerMode);
-	const mm = new MigrationManager(db, instructions);
-	const changes = await mm.getMigrateSql();
+export async function runMigrationWithoutHistory(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
+	Logger.setMode(dbInstructions.loggerMode);
+	const dialect = getDialect(db, dbInstructions);
 	
-	if(changes)
-		await db.runMultipleWriteStatements(changes.up);
+	const mm = new MigrationManager(dialect);
+	const migration = await mm.generateSqlChanges(dbInstructions);
+	
+	
+	if(migration) {
+		await db.createBackup?.(`from_${migration.fromVersion}_to_${dbInstructions.version}`);
+		await db.runMultipleWriteStatements(migration.changes.up);
+	}
 }
 
-export async function rollback(db: DatabaseAccess, instructions: DatabaseInstructions, toVersion: number) {
-	Logger.setMode(instructions.loggerMode);
-	const migrationHistoryManager = new MigrationHistoryManager(instructions.configPath);
-	const dialect = getDialect(instructions);
-	const fromVersion = await dialect.getVersion(db);
+export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstructions, toVersion: number) {
+	Logger.setMode(dbInstructions.loggerMode);
+	const dialect = getDialect(db, dbInstructions);
+	const fromVersion = await dialect.getVersion();
+	const historyManager = new MigrationHistoryManager(dbInstructions.configPath);
 	
+	await db.createBackup?.(`from_${fromVersion}_to_${dbInstructions.version}`);
 	Logger.log(`Rolling back from ${fromVersion} to ${toVersion}`);
 	for(let i= fromVersion - 1; i >= toVersion; --i) {
-		const upChanges = migrationHistoryManager.getDownMigration(i);
+		const upChanges = historyManager.getDownMigration(i);
 		Logger.debug(upChanges);
 		await db.runMultipleWriteStatements(upChanges);
-		instructions.version = i;
+		dbInstructions.version = i;
 	}
-	await dialect.setVersion(db, toVersion);
+	await dialect.setVersion(toVersion);
 }
 
 export {DbTable, ForeignKey, DatabaseAccess, DatabaseInstructions, PublicMigrations, SqlChanges};

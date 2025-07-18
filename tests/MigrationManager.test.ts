@@ -3,7 +3,19 @@ import {DatabaseAccess} from "../src";
 import {MigrationManager} from "../src/lib/MigrationManager";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
 import {SqlChanges} from "../src";
-import SqliteDialect from "../src/lib/dialects/SqliteDialect";
+import DefaultSql from "../src/lib/dialects/DefaultSql";
+import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
+
+class DefaultDialect extends DefaultSql {
+	getColumnInformation(_: string): Promise<ColumnInfo[]> {
+		return Promise.resolve([]);
+	}
+	
+	getTableNames(): Promise<string[]> {
+		return Promise.resolve([]);
+	}
+	
+}
 
 describe("MigrationManager", () => {
 	const mockDb: DatabaseAccess = {
@@ -11,9 +23,11 @@ describe("MigrationManager", () => {
 		runGetStatement: vi.fn(() => Promise.resolve([])),
 		runMultipleWriteStatements: vi.fn(),
 	};
+	let mockDialect: DefaultDialect
 	
 	let mockDbInstructions: DatabaseInstructions;
 	beforeEach(() => {
+		mockDialect = new DefaultDialect(mockDb);
 		mockDbInstructions = {
 			dialect: "Sqlite",
 			version: 1,
@@ -26,146 +40,105 @@ describe("MigrationManager", () => {
 	
 	describe("Version checks", () => {
 		it("should throw an error if migrating to version 0 or lower", async() => {
-			const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 0});
-			await expect(manager.getMigrateSql()).rejects.toThrow("Cannot migrate to version 0 or lower");
+			const manager = new MigrationManager(mockDialect);
+			
+			
+			await expect(
+				manager.generateSqlChanges({...mockDbInstructions, version: 0})
+			).rejects.toThrow("Cannot migrate to version 0 or lower");
 		});
 		
 		it("should return null if the current version matches the target version", async() => {
-			const mockMigrationHistoryManager = {
-				getLastHistoryVersion: vi.fn().mockReturnValue(1),
-			};
-			const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 1});
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue(mockMigrationHistoryManager);
+			mockDialect.getVersion = () => Promise.resolve(1);
+			const manager = new MigrationManager(mockDialect);
 			
-			const result = await manager.getMigrateSql();
+			const result = await manager.generateSqlChanges({...mockDbInstructions, version: 1});
+			
+			
 			expect(result).toBeNull();
 		});
 		
 		it("should throw an error when trying to migrate to a lower version", async() => {
-			const mockMigrationHistoryManager = {
-				getLastHistoryVersion: vi.fn().mockReturnValue(2),
-			};
-			const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 1});
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue(mockMigrationHistoryManager);
+			mockDialect.getVersion = () => Promise.resolve(2);
+			const manager = new MigrationManager(mockDialect)
 			
-			await expect(manager.getMigrateSql()).rejects.toThrow(
+			
+			await expect(manager.generateSqlChanges({...mockDbInstructions, version: 1})).rejects.toThrow(
 				"You cannot create new migrations with a lower version (from 2 to 1)"
 			);
 		});
 		
 		it("should create initial migration if history version is 0", async() => {
-			const mockMigrationHistoryManager = {
-				getLastHistoryVersion: vi.fn().mockReturnValue(0),
-			};
-			const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 1});
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue(mockMigrationHistoryManager);
-			
+			mockDialect.getVersion = () => Promise.resolve(0);
 			const mockResult: SqlChanges = {
 				up: "-- Migration SQL",
 				down: "-- Rollback SQL",
 			};
+			
+			const manager = new MigrationManager(mockDialect);
 			vi.spyOn(manager as any, "createAndDropTables").mockReturnValue(mockResult);
 			
-			const result = await manager.getMigrateSql();
+			const result = await manager.generateSqlChanges({...mockDbInstructions, version: 1});
 			
-			expect(result).toEqual(mockResult);
+			
+			expect(result?.changes.up).toEqual(`${mockResult.up}\n\n`);
+			expect(result?.changes.down).toEqual(`${mockResult.down}\n\n`);
 		});
 		
 		it("should generate migration SQL if version increases", async() => {
-			const mockMigrationHistoryManager = {
-				getLastHistoryVersion: vi.fn().mockReturnValue(1),
-			};
-			const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 2});
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue(mockMigrationHistoryManager);
-			
+			mockDialect.getVersion = () => Promise.resolve(1);
 			const mockCreateAndDropTablesResult: SqlChanges = {
 				up: "-- Create and Drop Tables SQL",
 				down: "-- Rollback Create and Drop Tables SQL",
 			};
-			vi.spyOn(manager as any, "createAndDropTables").mockReturnValue(mockCreateAndDropTablesResult);
-			
 			const mockMigrateForeignKeysResult: SqlChanges = {
 				up: "-- Foreign Key Changes SQL",
 				down: "-- Rollback Foreign Key Changes SQL",
 			};
+			
+			const manager = new MigrationManager(mockDialect);
+			vi.spyOn(manager as any, "createAndDropTables").mockReturnValue(mockCreateAndDropTablesResult);
 			vi.spyOn(manager as any, "migrateForeignKeys").mockReturnValue(mockMigrateForeignKeysResult);
 			
-			const result = await manager.getMigrateSql();
+			const result = await manager.generateSqlChanges({...mockDbInstructions, version: 2});
 			
-			expect(result?.up).toContain(mockCreateAndDropTablesResult.up);
-			expect(result?.up).toContain(mockMigrateForeignKeysResult.up);
-			expect(result?.down).toContain(mockCreateAndDropTablesResult.down);
-			expect(result?.down).toContain(mockMigrateForeignKeysResult.down);
+			expect(result?.changes.up).toContain(mockCreateAndDropTablesResult.up);
+			expect(result?.changes.up).toContain(mockMigrateForeignKeysResult.up);
+			expect(result?.changes.down).toContain(mockCreateAndDropTablesResult.down);
+			expect(result?.changes.down).toContain(mockMigrateForeignKeysResult.down);
 		});
 		
-	});
-	
-	describe("Migration history", () => {
-		it("should create a migration history during prepareMigration", async() => {
-			const mockCreateMigrationHistory = vi.fn();
-			
-			const manager = new MigrationManager(mockDb, mockDbInstructions);
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue({
-				createMigrationHistory: mockCreateMigrationHistory,
-			});
-			const mockSqlChanges: SqlChanges = {
-				up: "-- Migration SQL",
-				down: "-- Rollback SQL",
-			};
-			vi.spyOn(manager, "getMigrateSql").mockResolvedValue(mockSqlChanges);
-			vi.spyOn(manager, "getMigrateSql").mockReturnValue(Promise.resolve(mockSqlChanges));
-			
-			await manager.prepareMigration();
-			
-			expect(mockCreateMigrationHistory).toHaveBeenCalledWith(mockDbInstructions.version, mockSqlChanges, undefined);
-		});
-		
-		it("should not create migration history if no changes are detected", async() => {
-			const mockCreateMigrationHistory = vi.fn();
-			
-			const manager = new MigrationManager(mockDb, mockDbInstructions);
-			vi.spyOn(manager as any, "migrationHistoryManager", "get").mockReturnValue({
-				createMigrationHistory: mockCreateMigrationHistory,
-			});
-			vi.spyOn(manager, "getMigrateSql").mockResolvedValue(null);
-			
-			await manager.prepareMigration();
-			
-			expect(mockCreateMigrationHistory).not.toHaveBeenCalled();
-		});
 	});
 	
 	
 	it("should correctly rename a column", async() => {
-		//create mock DatabaseInstructions:
+		//alter DatabaseInstructions:
 		mockDbInstructions.tables = {
 			TableA: {columns: {
 				newColumnA: ""
 			}}
 		}
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.renameColumn("TableA", "oldColumnA", "newColumnA");
+			migrations.renameColumn(1, "TableA", "oldColumnA", "newColumnA");
 		}
 		
-		//create mock SqliteDialect:
-		const sqliteMock = new SqliteDialect();
-		sqliteMock.getVersion = () => Promise.resolve(1);
-		sqliteMock.getTableNames = () => Promise.resolve(["TableA"]);
-		sqliteMock.getColumnInformation = () => Promise.resolve([
+		//alter dialect:
+		mockDialect.getVersion = () => Promise.resolve(1);
+		mockDialect.getTableNames = () => Promise.resolve(["TableA"]);
+		mockDialect.getColumnInformation = () => Promise.resolve([
 			{
 				name: "oldColumnA",
-				type: sqliteMock.typeString,
+				type: mockDialect.typeString,
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
 		]);
 		
 		//setup manager
-		const manager = new MigrationManager(mockDb, {...mockDbInstructions, version: 2});
-		vi.spyOn((manager as any), "dialect", "get").mockReturnValue(sqliteMock);
+		const manager = new MigrationManager(mockDialect);
 		
 		//check results:
-		const result = await manager.getMigrateSql();
-		expect(result?.up).toContain(sqliteMock.renameColumn("TableA", "oldColumnA", "newColumnA"));
+		const result = await manager.generateSqlChanges({...mockDbInstructions, version: 2});
+		expect(result?.changes.up).toContain("ALTER TABLE TableA RENAME COLUMN oldColumnA TO newColumnA");
 	});
 });

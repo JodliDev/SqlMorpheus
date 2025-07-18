@@ -2,8 +2,6 @@ import {test, describe, expect, beforeEach} from "vitest";
 import BetterSqlite3 from "better-sqlite3";
 import * as fs from "node:fs";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
-import {PublicMigrations} from "../src";
-import {SqlChanges} from "../src";
 import {prepareAndRunMigration, rollback} from "../src";
 
 describe("Integration tests", () => {
@@ -30,10 +28,10 @@ describe("Integration tests", () => {
 			},
 			version: 1,
 			configPath: configPath,
-			preMigration(migrations: PublicMigrations): SqlChanges | void {
-				migrations.alwaysAllow("alterPrimaryKey", "recreateTable");
-			}
-			
+			alwaysAllowedMigrations: {
+				alterPrimaryKey: true,
+				recreateTable: true
+			},
 		} satisfies DatabaseInstructions;
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -96,11 +94,7 @@ describe("Integration tests", () => {
 	});
 	
 	test("Sqlite", async () => {
-		const path = `${configPath}testDb.db`;
-		if(fs.existsSync(path))
-			fs.unlinkSync(path);
-		console.log(`Using db at ${path}`);
-		const db = new BetterSqlite3(path);
+		const db = new BetterSqlite3(":memory:");
 		
 		await runTest(
 			(query: string): Promise<unknown> => {

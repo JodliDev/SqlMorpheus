@@ -11,7 +11,7 @@ export default interface DatabaseInstructions {
 	version: number;
 	configPath: string;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
-	alwaysAllowed?: AllowedMigrations;
+	alwaysAllowedMigrations?: AllowedMigrations;
 	
 	/**
 	 * Custom migrations that will run before any database changes are applied.
