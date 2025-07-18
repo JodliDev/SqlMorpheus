@@ -1,13 +1,18 @@
 import AllowedMigrations from "./AllowedMigrations";
 
+export interface RenameData {
+	oldName: string;
+	newName: string;
+}
+
 export default interface MigrationInstructions {
-	oldTableName?: string;
+	tableRenaming?: RenameData;
 	recreate: boolean;
 	
 	/**
-	 * Stores changes to column (0: name in the database, last: current name in code)
+	 * Stores changes to column. One entry per column.
 	 */
-	renamedColumns: string[][];
+	renamedColumns: RenameData[];
 	
 	allowedMigrations: AllowedMigrations;
 	usedMigrations: Record<string, boolean>
