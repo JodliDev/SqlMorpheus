@@ -29,7 +29,8 @@ export class Migrations {
 			this.migrationData[tableName] = {
 				recreate: false,
 				renamedColumns: [],
-				allowedMigrations: {}
+				allowedMigrations: {},
+				usedMigrations: {}
 			};
 		}
 		return this.migrationData[tableName]
@@ -63,11 +64,29 @@ export class Migrations {
 	public verifyAllowedMigrations(): Error | void {
 		if(this.notAllowedChanges.length)
 			return new MigrationNotAllowedException(this.notAllowedChanges);
+		
+		let errorMsg = "";
+		for(const tableName in this.migrationData) {
+			const migration = this.migrationData[tableName];
+			for(const type in migration.allowedMigrations) {
+				if(!migration.usedMigrations[type])
+					errorMsg += `Migration \"${type}\" for ${tableName} was allowed but not needed.\n`;
+			}
+		}
+		
+		if(errorMsg)
+			return new Error(errorMsg);
 	}
 	
 	public compareWithAllowedMigration(tableName: string, type: keyof AllowedMigrations): void {
-		if(!this.migrationData[tableName]?.allowedMigrations[type] && !this.alwaysAllowed[type])
-			this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, type: type});
+		const migrationEntry = this.migrationData[tableName];
+		
+		if(!migrationEntry?.allowedMigrations[type]) {
+			if(!this.alwaysAllowed[type])
+				this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, type: type});
+		}
+		else if(migrationEntry)
+			migrationEntry.usedMigrations[type] = true;
 	}
 	
 	public allowMigration(version: number, table: string | Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {

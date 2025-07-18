@@ -1,3 +1,7 @@
+export interface AllowedEntry {
+	allowed: boolean;
+	used: boolean;
+}
 export default interface AllowedMigrations {
 	recreateTable?: boolean;
 	dropTable?: boolean;

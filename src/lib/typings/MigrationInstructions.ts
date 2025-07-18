@@ -9,5 +9,6 @@ export default interface MigrationInstructions {
 	 */
 	renamedColumns: string[][];
 	
-	allowedMigrations: AllowedMigrations
+	allowedMigrations: AllowedMigrations;
+	usedMigrations: Record<string, boolean>
 }
