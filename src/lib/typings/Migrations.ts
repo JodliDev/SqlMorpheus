@@ -3,8 +3,7 @@ import AllowedMigrations from "./AllowedMigrations";
 import MigrationInstructions from "./MigrationInstructions";
 import MigrationNotAllowedException from "../exceptions/NotAllowedException";
 import DatabaseInstructions from "./DatabaseInstructions";
-import {SqlChanges} from "./SqlChanges";
-import {Logger} from "../Logger";
+import {TableStructure} from "./TableStructure";
 
 export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
 
@@ -39,22 +38,36 @@ export class Migrations {
 		return typeof table == "string" ? table : table.name;
 	}
 	
-	public verifyMigration(tableName: string, type: keyof AllowedMigrations): void {
+	public verifyRenamingTasks(newTables: Record<string, TableStructure>): Error | void {
+		for(const tableName in this.migrationData) {
+			const migrationEntry = this.migrationData[tableName];
+			
+			//Table renaming:
+			if(migrationEntry.oldTableName == tableName)
+				return new Error(`You set table ${tableName} to be renamed to itself!`);
+			else if(!newTables[tableName])
+				return new Error(`You set table ${migrationEntry.oldTableName} to be renamed to ${tableName}. But ${tableName} does not exist in your structure.`);
+			
+			//Column renaming:
+			for(const renamingArray of migrationEntry.renamedColumns) {
+				const oldColumnName = renamingArray[0];
+				const newColumnName = renamingArray[renamingArray.length - 1];
+				
+				if(oldColumnName == newColumnName)
+					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to itself!`);
+				else if(!newTables[tableName]?.columns.find((column) => column.name == newColumnName))
+					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to ${tableName}.${newColumnName}. But ${tableName}.${newColumnName} does not exist in your structure.`);
+			}
+		}
+	}
+	public verifyAllowedMigrations(): Error | void {
+		if(this.notAllowedChanges.length)
+			return new MigrationNotAllowedException(this.notAllowedChanges);
+	}
+	
+	public compareWithAllowedMigration(tableName: string, type: keyof AllowedMigrations): void {
 		if(!this.migrationData[tableName]?.allowedMigrations[type] && !this.alwaysAllowed[type])
 			this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, type: type});
-	}
-	public checkIfAllowed(throwIfNotAllowed: boolean, changes: SqlChanges): boolean {
-		if(!this.notAllowedChanges.length)
-			return true;
-		Logger.debug(`\nCanceled changes:\n${changes.up}\n`);
-		const exception = new MigrationNotAllowedException(this.notAllowedChanges);
-		
-		if(throwIfNotAllowed)
-			throw exception;
-		else {
-			console.error(exception.message);
-			return false;
-		}
 	}
 	
 	public allowMigration(version: number, table: string | Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
