@@ -9,7 +9,7 @@ class TestClass2 {
 
 class TestClass {
 	id: number = 3;
-	@ForeignKey(TestClass2,  "id", "CASCADE", "SET DEFAULT")
+	@ForeignKey(TestClass2,  "id", {onUpdate: "SET DEFAULT", onDelete: "CASCADE"})
 	foreignKey1: number = 1;
 }
 

@@ -9,16 +9,17 @@ import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix.
  *
  * @param toTable - The target table class to which the foreign key points.
  * @param toColumn - The column name in the target table to which the foreign key points.
- * @param [onDelete] - Optional. The action to perform when a row in the target table is deleted.
- * @param [onUpdate] - Optional. The action to perform when a related row in the target table is updated.
+ * @param options - Optional. The action to perform when a row in the target table is deleted.
  */
 export default function ForeignKey<
 	TOther extends TableClassInterface
 >(
 	toTable: Class<TOther>,
 	toColumn: keyof TOther,
-	onDelete?: ForeignKeyActions,
-	onUpdate?: ForeignKeyActions,
+	options?: {
+		onDelete?: ForeignKeyActions,
+		onUpdate?: ForeignKeyActions
+	}
 ) {
 	return (table: any, context: any) => {
 		
@@ -31,8 +32,8 @@ export default function ForeignKey<
 			fromColumn: context.name ?? context, //to stay compatible with old decorator structure (see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-2.html#decorator-metadata)
 			toTable: toTable.name,
 			toColumn: toColumn.toString(),
-			onDelete: onDelete,
-			onUpdate: onUpdate,
+			onDelete: options?.onDelete,
+			onUpdate: options?.onUpdate,
 		});
 	}
 }

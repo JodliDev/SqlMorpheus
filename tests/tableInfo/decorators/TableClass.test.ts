@@ -12,7 +12,7 @@ class TestClass2 {
 @TableClass("TestClassName", "id")
 class TestClass {
 	id: number = 3;
-	@ForeignKey(TestClass2,  "id", "CASCADE", "SET DEFAULT")
+	@ForeignKey(TestClass2,  "id", {onDelete: "CASCADE", onUpdate: "SET DEFAULT"})
 	foreignKey1: number = 1;
 }
 
