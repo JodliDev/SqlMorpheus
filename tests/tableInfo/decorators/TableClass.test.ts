@@ -1,15 +1,15 @@
 import {describe, expect, it} from "vitest";
 import ForeignKey from "../../../src/lib/tableInfo/decorators/ForeignKey";
-import DbTable from "../../../src/lib/tableInfo/decorators/DbTable";
+import TableClass from "../../../src/lib/tableInfo/decorators/TableClass";
 import {getTableInfo} from "../../../src/lib/tableInfo/TableInfo";
 import {ForeignKeyInfo} from "../../../src/lib/typings/ForeignKeyInfo";
 
-@DbTable("TestClass2Name", "id")
+@TableClass("TestClass2Name", "id")
 class TestClass2 {
 	id: number = 5;
 }
 
-@DbTable("TestClassName", "id")
+@TableClass("TestClassName", "id")
 class TestClass {
 	id: number = 3;
 	@ForeignKey(TestClass2,  "id", "CASCADE", "SET DEFAULT")

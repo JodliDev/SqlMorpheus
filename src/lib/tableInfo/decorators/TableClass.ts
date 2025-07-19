@@ -9,7 +9,7 @@ import "polyfill-symbol-metadata";
  * @param tableName - The name of the database table used in SQL.
  * @param primaryKey - The property name representing the primary property of the table.
  */
-export default function DbTable<T extends BackendTable>(tableName: string, primaryKey?: keyof T) {
+export default function TableClass<T extends BackendTable>(tableName: string, primaryKey?: keyof T) {
 	return (table: Class<T>, context?: any) => {
 		Object.defineProperty(table, "name", {value: tableName, writable: false});
 		

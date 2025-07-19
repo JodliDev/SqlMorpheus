@@ -3,7 +3,7 @@ import {DatabaseAccess} from "./lib/typings/DatabaseAccess";
 import DatabaseInstructions from "./lib/typings/DatabaseInstructions";
 import MigrationHistoryManager from "./lib/MigrationHistoryManager";
 import {Logger} from "./lib/Logger";
-import DbTable from "./lib/tableInfo/decorators/DbTable";
+import TableClass from "./lib/tableInfo/decorators/TableClass";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey";
 import getDialect from "./lib/getDialect";
 import {PublicMigrations} from "./lib/typings/Migrations";
@@ -79,4 +79,4 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 	await dialect.setVersion(toVersion);
 }
 
-export {DbTable, ForeignKey, DatabaseAccess, DatabaseInstructions, PublicMigrations, SqlChanges};
+export {TableClass, ForeignKey, DatabaseAccess, DatabaseInstructions, PublicMigrations, SqlChanges};
