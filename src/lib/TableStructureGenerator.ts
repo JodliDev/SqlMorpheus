@@ -7,7 +7,7 @@ import {Logger} from "./Logger";
 import TableInfo, {getTableInfo} from "./tableInfo/TableInfo";
 import {TableObj} from "./TableObj";
 
-export type TableInformation = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
+export type TableInputStructure = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
@@ -19,7 +19,7 @@ export default class TableStructureGenerator {
 	}
 	
 	public generateTableStructure(): Record<string, TableStructure> {
-		const tableObjects: TableInformation = {};
+		const tableObjects: TableInputStructure = {};
 		for(const table of this.dbInstructions.tables) {
 			if(TableObj.isDbTable(table))
 				tableObjects[table.tableName] = table;
@@ -31,7 +31,7 @@ export default class TableStructureGenerator {
 		return this.getExpectedStructure(tableObjects);
 	}
 	
-	private getExpectedStructure(tableObjects: TableInformation): Record<string, TableStructure> {
+	private getExpectedStructure(tableObjects: TableInputStructure): Record<string, TableStructure> {
 		const tables: Record<string, TableStructure> = {};
 		for(const tableName in tableObjects) {
 			const obj = tableObjects[tableName];
@@ -41,7 +41,7 @@ export default class TableStructureGenerator {
 			tables[tableName] = {
 				table: tableName,
 				primaryKey: tableInfo?.primaryKey,
-				columns: this.getColumns(obj.columns, tableInfo?.primaryKey),
+				columns: this.getColumns(obj.columns, tableInfo),
 				foreignKeys: tableInfo?.foreignKeys
 			};
 		}
@@ -50,7 +50,7 @@ export default class TableStructureGenerator {
 	}
 	
 	
-	private getColumns(obj: TableClassInterface, primaryKey?: keyof TableClassInterface): ColumnInfo[] {
+	private getColumns(obj: TableClassInterface, primaryKey?: TableInfo): ColumnInfo[] {
 		const columns: ColumnInfo[] = [];
 		for(const property in obj) {
 			const propertyKey = property as keyof TableClassInterface;
