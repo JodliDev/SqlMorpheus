@@ -11,15 +11,17 @@ import "polyfill-symbol-metadata";
  */
 export default function TableClass<T extends TableClassInterface>(tableName: string, primaryKey?: keyof T) {
 	return (table: Class<T>, context?: any) => {
-		Object.defineProperty(table, "name", {value: tableName, writable: false});
-		
 		const tableInfo = context?.metadata ? getTableInfoFromMetadata(context.metadata) : getTableInfo(table);
 		tableInfo.primaryKey = primaryKey?.toString();
 		
 		if(tableInfo.foreignKeys) {
 			for(const foreignKey of tableInfo.foreignKeys) {
 				foreignKey.fromTable = tableName;
+				if(foreignKey.toTable == table.name)
+					foreignKey.toTable = tableName;
 			}
 		}
+		
+		Object.defineProperty(table, "name", {value: tableName, writable: false});
 	}
 }
