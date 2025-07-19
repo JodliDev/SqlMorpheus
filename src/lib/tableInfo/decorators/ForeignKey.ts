@@ -1,4 +1,4 @@
-import {BackendTable, Class} from "../../typings/BackendTable";
+import {TableClassInterface, Class} from "../../typings/TableClassInterface";
 import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
 import "polyfill-symbol-metadata";
 import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
@@ -13,7 +13,7 @@ import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix.
  * @param [onUpdate] - Optional. The action to perform when a related row in the target table is updated.
  */
 export default function ForeignKey<
-	TOther extends BackendTable
+	TOther extends TableClassInterface
 >(
 	toTable: Class<TOther>,
 	toColumn: keyof TOther,

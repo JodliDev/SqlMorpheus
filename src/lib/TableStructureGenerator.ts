@@ -1,4 +1,4 @@
-import {BackendTable, Class} from "./typings/BackendTable";
+import {TableClassInterface, Class} from "./typings/TableClassInterface";
 import {ColumnInfo} from "./typings/ColumnInfo";
 import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {TableStructure} from "./typings/TableStructure";
@@ -7,7 +7,7 @@ import {Logger} from "./Logger";
 import TableInfo, {getTableInfo} from "./tableInfo/TableInfo";
 import {TableObj} from "./TableObj";
 
-export type TableInformation = Record<string, { columns: BackendTable, tableInfo?: TableInfo }>;
+export type TableInformation = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
@@ -24,7 +24,7 @@ export default class TableStructureGenerator {
 			if(TableObj.isDbTable(table))
 				tableObjects[table.tableName] = table;
 			else {
-				const classTable = table as Class<BackendTable>;
+				const classTable = table as Class<TableClassInterface>;
 				tableObjects[classTable.name] = {columns: new classTable, tableInfo: getTableInfo(classTable)};
 			}
 		}
@@ -50,10 +50,10 @@ export default class TableStructureGenerator {
 	}
 	
 	
-	private getColumns(obj: BackendTable, primaryKey?: keyof BackendTable): ColumnInfo[] {
+	private getColumns(obj: TableClassInterface, primaryKey?: keyof TableClassInterface): ColumnInfo[] {
 		const columns: ColumnInfo[] = [];
 		for(const property in obj) {
-			const propertyKey = property as keyof BackendTable;
+			const propertyKey = property as keyof TableClassInterface;
 			const value = obj[propertyKey];
 			const columnData = {
 				name: property,

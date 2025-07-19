@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {getTableInfo, getTableInfoFromMetadata, TABLE_INFO_PROPERTY_NAME} from "../../src/lib/tableInfo/TableInfo";
-import {Class} from "../../src/lib/typings/BackendTable";
+import {Class} from "../../src/lib/typings/TableClassInterface";
 import "polyfill-symbol-metadata";
 
 interface BackendTable {

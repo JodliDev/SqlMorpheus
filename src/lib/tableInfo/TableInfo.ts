@@ -1,5 +1,5 @@
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
-import {BackendTable, Class} from "../typings/BackendTable";
+import {TableClassInterface, Class} from "../typings/TableClassInterface";
 
 export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 
@@ -16,7 +16,7 @@ export default interface TableInfo {
  * @param table - The class representing the table.
  * @return The table information as a `TableInfo` object.
  */
-export function getTableInfo<T extends BackendTable>(table: Class<T>): TableInfo {
+export function getTableInfo<T extends TableClassInterface>(table: Class<T>): TableInfo {
 	//to stay compatible with old decorator structure (see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-2.html#decorator-metadata):
 	let metadata = table[Symbol.metadata] ?? table.prototype?.[Symbol.metadata];
 	
