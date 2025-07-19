@@ -4,8 +4,10 @@ import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {TableStructure} from "./typings/TableStructure";
 import DefaultSql from "./dialects/DefaultSql";
 import {Logger} from "./Logger";
-import {getTableInfo} from "./tableInfo/TableInfo";
-import {TableObjects} from "./tableInfo/TableObjects";
+import TableInfo, {getTableInfo} from "./tableInfo/TableInfo";
+import {TableObj} from "./TableObj";
+
+export type TableInformation = Record<string, { columns: BackendTable, tableInfo?: TableInfo }>;
 
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
@@ -17,21 +19,19 @@ export default class TableStructureGenerator {
 	}
 	
 	public generateTableStructure(): Record<string, TableStructure> {
-		if(this.dbInstructions.tables.length) {
-			const tableObjects: TableObjects = {};
-			
-			for(const table of this.dbInstructions.tables as Class<BackendTable>[]) {
-				tableObjects[table.name] = {columns: new table, tableInfo: getTableInfo(table)};
+		const tableObjects: TableInformation = {};
+		for(const table of this.dbInstructions.tables) {
+			if(TableObj.isDbTable(table))
+				tableObjects[table.tableName] = table;
+			else {
+				const classTable = table as Class<BackendTable>;
+				tableObjects[classTable.name] = {columns: new classTable, tableInfo: getTableInfo(classTable)};
 			}
-			return this.getExpectedStructure(tableObjects);
 		}
-		else {
-			const tableObjects = this.dbInstructions.tables as TableObjects;
-			return this.getExpectedStructure(tableObjects);
-		}
+		return this.getExpectedStructure(tableObjects);
 	}
 	
-	private getExpectedStructure(tableObjects: TableObjects): Record<string, TableStructure> {
+	private getExpectedStructure(tableObjects: TableInformation): Record<string, TableStructure> {
 		const tables: Record<string, TableStructure> = {};
 		for(const tableName in tableObjects) {
 			const obj = tableObjects[tableName];

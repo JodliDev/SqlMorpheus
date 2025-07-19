@@ -1,9 +1,9 @@
-import {Class, BackendTable} from "./BackendTable";
 import AllowedMigrations from "./AllowedMigrations";
 import MigrationInstructions from "./MigrationInstructions";
 import MigrationNotAllowedException from "../exceptions/NotAllowedException";
-import DatabaseInstructions from "./DatabaseInstructions";
+import DatabaseInstructions, {TableInput} from "./DatabaseInstructions";
 import {TableStructure} from "./TableStructure";
+import {TableObj} from "../TableObj";
 
 export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
 
@@ -26,8 +26,11 @@ export class Migrations {
 		this.notAllowedChanges = [];
 	}
 	
-	private getEntry(table: string | Class<BackendTable>): MigrationInstructions {
+	private getEntry(table: TableInput): MigrationInstructions {
 		const tableName = this.getTableName(table);
+		return this.getEntryFromTableName(tableName);
+	}
+	private getEntryFromTableName(tableName: string) {
 		if(!this.migrationData.hasOwnProperty(tableName)) {
 			this.migrationData[tableName] = {
 				recreate: false,
@@ -36,10 +39,11 @@ export class Migrations {
 				usedMigrations: {}
 			};
 		}
-		return this.migrationData[tableName]
+		return this.migrationData[tableName];
 	}
-	private getTableName(table: string | Class<BackendTable>): string {
-		return typeof table == "string" ? table : table.name;
+	
+	private getTableName(table: TableInput): string {
+		return TableObj.isDbTable(table) ? table.tableName : table.name;
 	}
 	
 	private versionIsRelevant(version: number): boolean {
@@ -57,12 +61,14 @@ export class Migrations {
 			const migrationEntry = this.migrationData[tableName];
 			
 			//Tables:
-			if(migrationEntry.tableRenaming?.oldName == tableName)
-				return new Error(`You set table "${tableName}" to be renamed to itself!`);
-			if(migrationEntry.tableRenaming && migrationEntry.tableRenaming.newName != tableName)
-				return new Error(`You set table "${tableName}" to be renamed to a different name than the one in your structure (${migrationEntry.tableRenaming.newName})!`);
-			else if(!newTables[tableName])
-				return new Error(`You set table "${migrationEntry.tableRenaming}" migrations for "${tableName}". But "${tableName}" does not exist in your structure.`);
+			if(migrationEntry.tableRenaming) {
+				if(migrationEntry.tableRenaming.oldName == tableName)
+					return new Error(`You set table "${tableName}" to be renamed to itself!`);
+				if(migrationEntry.tableRenaming.newName != tableName)
+					return new Error(`You set table "${tableName}" to be renamed to a different name than the one in your structure (${migrationEntry.tableRenaming.newName})!`);
+				else if(!newTables[tableName])
+					return new Error(`You set table "${migrationEntry.tableRenaming}" migrations for "${tableName}". But "${tableName}" does not exist in your structure.`);
+			}
 			
 			//Columns:
 			for(const renamingData of migrationEntry.renamedColumns) {
@@ -131,14 +137,14 @@ export class Migrations {
 		return this.migrationData[tableName]?.recreate;
 	}
 	
-	public recreateTableImp(table: Class<BackendTable> | string) {
-		const entry = this.getEntry(table);
+	public internalRecreate(tableName: string) {
+		const entry = this.getEntryFromTableName(tableName);
 		entry.recreate = true;
 	}
 	
 	
 	
-	public allowMigration(version: number, table: string | Class<BackendTable>, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
+	public allowMigration(version: number, table: TableInput, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
 		if(version < this.fromVersion || version > this.toVersion)
 			return;
 		const entry = this.getEntry(table);
@@ -148,16 +154,10 @@ export class Migrations {
 		}
 	}
 	
-	public renameTable(version: number, oldTableName: string, newTableName: string | Class<BackendTable>) {
+	public renameTable(version: number, oldTableName: string, newTableName: TableInput) {
 		if(!this.versionIsRelevant(version))
 			return;
 		const newTableNameString = this.getTableName(newTableName);
-		
-		//Make sure migration data is always saved under the current table name:
-		if(this.migrationData.hasOwnProperty(oldTableName)) {
-			this.migrationData[newTableNameString] = this.getEntry(oldTableName);
-			delete this.migrationData[oldTableName];
-		}
 		
 		//add data for renaming:
 		const entry = this.getEntry(newTableName);
@@ -165,11 +165,11 @@ export class Migrations {
 		
 		if(!entry.tableRenaming)
 			entry.tableRenaming = {oldName: oldTableName, newName: newTableNameString};
-		else
+		else //we only care about the oldest (=current) table name
 			entry.tableRenaming.newName = newTableNameString;
 	}
 	
-	public renameColumn(version: number, table: string | Class<BackendTable>, oldColumn: string, newColumn: string): void {
+	public renameColumn(version: number, table: TableInput, oldColumn: string, newColumn: string): void {
 		if(!this.versionIsRelevant(version))
 			return;
 		const entry = this.getEntry(table);
@@ -180,10 +180,11 @@ export class Migrations {
 		else
 			entry.renamedColumns.push({oldName: oldColumn, newName: newColumn});
 	}
-	public recreateTable(version: number, table: Class<BackendTable> | string) {
+	public recreateTable(version: number, table: TableInput) {
 		if(!this.versionIsRelevant(version))
 			return;
-		this.recreateTableImp(table);
+		const entry = this.getEntry(table);
+		entry.recreate = true;
 	}
 }
 

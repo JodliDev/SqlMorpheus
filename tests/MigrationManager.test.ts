@@ -6,6 +6,8 @@ import {SqlChanges} from "../src";
 import DefaultSql from "../src/lib/dialects/DefaultSql";
 import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
 import NotAllowedException from "../src/lib/exceptions/NotAllowedException";
+import {TableObj} from "../src/lib/TableObj";
+import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 
 class DefaultDialect extends DefaultSql {
 	getColumnInformation(_: string): Promise<ColumnInfo[]> {
@@ -16,6 +18,9 @@ class DefaultDialect extends DefaultSql {
 		return Promise.resolve([]);
 	}
 	
+	async getForeignKeys(): Promise<ForeignKeyInfo[]> {
+		return Promise.resolve([]);
+	}
 }
 
 describe("MigrationManager", () => {
@@ -33,7 +38,7 @@ describe("MigrationManager", () => {
 			dialect: "Sqlite",
 			version: 1,
 			configPath: `${process.cwd()}/config/`,
-			tables: {},
+			tables: [],
 			throwIfNotAllowed: true,
 			preMigration: vi.fn(),
 			postMigration: vi.fn(),
@@ -115,13 +120,10 @@ describe("MigrationManager", () => {
 	
 	it("should correctly rename a column", async() => {
 		//alter DatabaseInstructions:
-		mockDbInstructions.tables = {
-			TableA: {columns: {
-				newColumnA: ""
-			}}
-		}
+		const tableA = TableObj.create("TableA", {newColumnA: ""});
+		mockDbInstructions.tables = [tableA];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.renameColumn(1, "TableA", "oldColumnA", "newColumnA");
+			migrations.renameColumn(1, tableA, "oldColumnA", "newColumnA");
 		}
 		
 		//alter dialect:
@@ -146,9 +148,10 @@ describe("MigrationManager", () => {
 	
 	it("should throw if not allowed", async() => {
 		//alter DatabaseInstructions:
+		const tableA = TableObj.create("TableA", {newColumnA: ""});
 		mockDbInstructions.tables = [];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.allowMigration(2, "TableA", "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
+			migrations.allowMigration(2, tableA, "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
 		}
 		
 		//alter dialect:

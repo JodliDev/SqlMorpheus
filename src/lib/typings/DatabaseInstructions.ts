@@ -1,13 +1,15 @@
 import {BackendTable, Class} from "./BackendTable";
 import {PublicMigrations} from "./Migrations";
 import {SqlChanges} from "./SqlChanges";
-import {TableObjects} from "../tableInfo/TableObjects";
 import AllowedMigrations from "./AllowedMigrations";
+import {TableObjInput} from "../TableObj";
 
+
+export type TableInput = TableObjInput | Class<BackendTable>;
 
 export default interface DatabaseInstructions {
 	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres";
-	tables: Class<BackendTable>[] | TableObjects;
+	tables: TableInput[];
 	version: number;
 	configPath: string;
 	throwIfNotAllowed: boolean;

@@ -327,7 +327,7 @@ export class MigrationManager {
 						);
 					}
 					else {
-						this.migrations.recreateTableImp(structure.table);
+						this.migrations.internalRecreate(structure.table);
 						checkForNewForeignKeys = false;
 					}
 				}
@@ -353,7 +353,7 @@ export class MigrationManager {
 							
 						}
 						else {
-							this.migrations.recreateTableImp(structure.table);
+							this.migrations.internalRecreate(structure.table);
 							checkForNewForeignKeys = false;
 						}
 					}
@@ -377,7 +377,7 @@ export class MigrationManager {
 						
 						changes.down += this.dialect.removeForeignKey(newForeignKey.fromTable, newForeignKey.fromColumn);
 					} else {
-						this.migrations.recreateTableImp(structure.table);
+						this.migrations.internalRecreate(structure.table);
 						break;
 					}
 				}
@@ -425,7 +425,7 @@ export class MigrationManager {
 					}
 				}
 				else
-					this.migrations.recreateTableImp(newTableDefinition.table);
+					this.migrations.internalRecreate(newTableDefinition.table);
 				continue;
 			}
 			
@@ -440,7 +440,7 @@ export class MigrationManager {
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
 				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
-					this.migrations.recreateTableImp(newTableDefinition.table);
+					this.migrations.internalRecreate(newTableDefinition.table);
 				}
 			}
 			

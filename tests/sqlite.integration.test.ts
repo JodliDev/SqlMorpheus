@@ -1,9 +1,11 @@
+// noinspection SqlResolve
 
 import {test, describe, expect, beforeEach} from "vitest";
 import BetterSqlite3 from "better-sqlite3";
 import * as fs from "node:fs";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
 import {prepareAndRunMigration, PublicMigrations, SqlChanges} from "../src";
+import {TableObj} from "../src/lib/TableObj";
 
 describe("Integration tests", () => {
 	const configPath = `${process.cwd()}/config/`;
@@ -43,21 +45,18 @@ describe("Integration tests", () => {
 	};
 	
 	test("Rename column", async () => {
-		const {db, runGetStatement, runMultipleWriteStatements} = createDb();
+		const {runGetStatement, runMultipleWriteStatements} = createDb();
+		
+		const users = TableObj.create("Users", {
+			id: 0,
+			username: "",
+			email: ""
+		}).primaryKey("id");
 		
 		// Initial table structure
 		const instructions = {
 			dialect: "Sqlite",
-			tables: {
-				users: {
-					columns: {
-						id: 0,
-						username: "",
-						email: ""
-					},
-					tableInfo: {primaryKey: "id"}
-				}
-			},
+			tables: [users],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
@@ -81,11 +80,11 @@ describe("Integration tests", () => {
 		
 		// Modify table structure
 		instructions.version = 2;
-		(instructions.tables.users.columns as any).displayName = "";
-		delete (instructions.tables.users.columns as any).username;
+		(users as TableObj<any>).columns.displayName = "";
+		delete (users as TableObj<any>).columns.username;
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameColumn(2, "users", "username", "displayName");
+			migrations.renameColumn(2, users, "username", "displayName");
 		};
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -98,21 +97,18 @@ describe("Integration tests", () => {
 	});
 	
 	test("Modify primary key", async () => {
-		const {db, runGetStatement, runMultipleWriteStatements} = createDb();
+		const {runGetStatement, runMultipleWriteStatements} = createDb();
+		
+		const products = TableObj.create("Products", {
+			id: 0,
+			sku: "",
+			name: ""
+		}).primaryKey("id");
 		
 		// Initial structure with 'id' as primary key
 		const instructions = {
 			dialect: "Sqlite",
-			tables: {
-				products: {
-					columns: {
-						id: 0,
-						sku: "",
-						name: ""
-					},
-					tableInfo: {primaryKey: "id"}
-				}
-			},
+			tables: [products],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
@@ -126,7 +122,7 @@ describe("Integration tests", () => {
 		
 		// Change primary key to 'sku'
 		instructions.version = 2;
-		instructions.tables.products.tableInfo.primaryKey = "sku";
+		(products as TableObj<any>).primaryKey("sku");
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
@@ -137,44 +133,28 @@ describe("Integration tests", () => {
 	});
 	
 	test("Add and modify foreign keys", async () => {
-		const {db, runGetStatement, runMultipleWriteStatements} = createDb();
+		const {runGetStatement, runMultipleWriteStatements} = createDb();
+		
+		const categories = TableObj.create("Categories", {
+			id: 0,
+			name: ""
+		}).primaryKey("id");
+		
+		const items = TableObj.create("Items", {
+			id: 0,
+			name: "",
+			categoryId: 0
+		}).primaryKey("id")
+			.foreignKey("categoryId", categories, "id", {onDelete: "CASCADE"});
 		
 		// Initial structure with two tables
 		const instructions = {
 			dialect: "Sqlite",
-			tables: {
-				categories: {
-					columns: {
-						id: 0,
-						name: ""
-					},
-					tableInfo: {primaryKey: "id"}
-				},
-				items: {
-					columns: {
-						id: 0,
-						name: "",
-						categoryId: 0
-					},
-					tableInfo: {
-						primaryKey: "id",
-						foreignKeys: [
-							{
-								fromTable: "items",
-								fromColumn: "categoryId",
-								toTable: "categories",
-								toColumn: "id",
-								onDelete: "CASCADE",
-							}
-						]
-					}
-				}
-			},
+			tables: [categories, items],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
-			preMigration(_: PublicMigrations): SqlChanges | void {
-			}
+			preMigration(_: PublicMigrations): SqlChanges | void {}
 		} satisfies DatabaseInstructions;
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -182,33 +162,36 @@ describe("Integration tests", () => {
 		// Modify foreign key constraint
 		instructions.version = 2;
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.allowMigration(2, "items", "alterForeignKey");
-			migrations.allowMigration(2, "items", "recreateTable"); //sqlite cannot alter foreign keys
+			migrations.allowMigration(2, items, "alterForeignKey");
+			migrations.allowMigration(2, items, "recreateTable"); //sqlite cannot alter foreign keys
 		}
-		(instructions.tables.items.tableInfo.foreignKeys![0] as any).onDelete = "SET NULL";
+		(items as TableObj<any>).tableInfo.foreignKeys![0].onDelete = "SET NULL";
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
-		const foreignKeys = await runGetStatement("PRAGMA foreign_key_list(items)");
-		expect((foreignKeys as any[])[0].on_delete).toBe("SET NULL");
+		const foreignKeys = await runGetStatement("PRAGMA foreign_key_list(items)") as any[];
+		expect(foreignKeys[0].on_delete).toBe("SET NULL");
 	});
 	
 	test("Rename table", async () => {
-		const {db, runGetStatement, runMultipleWriteStatements} = createDb();
+		const {runGetStatement, runMultipleWriteStatements} = createDb();
+		
+		const oldTasks = TableObj.create("old_tasks", {
+			id: 0,
+			title: "",
+			completed: false
+		}).primaryKey("id");
+		
+		const tasks = TableObj.create("tasks", {
+			id: 0,
+			title: "",
+			completed: false
+		}).primaryKey("id");
 		
 		// Initial structure
 		const instructions: DatabaseInstructions = {
 			dialect: "Sqlite",
-			tables: {
-				old_tasks: {
-					columns: {
-						id: 0,
-						title: "",
-						completed: false
-					},
-					tableInfo: {primaryKey: "id"}
-				}
-			},
+			tables: [oldTasks],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true
@@ -225,19 +208,10 @@ describe("Integration tests", () => {
 		
 		// Rename table
 		instructions.version = 2;
-		instructions.tables = {
-			tasks: {
-				columns: {
-					id: 0,
-					title: "",
-					completed: false
-				},
-				tableInfo: {primaryKey: "id"}
-			}
-		};
+		instructions.tables = [tasks];
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameTable(2, "old_tasks", "tasks");
+			migrations.renameTable(2, "old_tasks", tasks);
 		};
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -250,46 +224,27 @@ describe("Integration tests", () => {
 	});
 	
 	test("Complex schema changes", async () => {
-		const {db, runGetStatement, runMultipleWriteStatements} = createDb();
+		const {runGetStatement, runMultipleWriteStatements} = createDb();
+		
+		const departments = TableObj.create("departments", {
+			id: 0,
+			name: ""
+		}).primaryKey("id");
+		
+		const employees = TableObj.create("employees", {
+			id: 0,
+			firstName: "",
+			lastName: "",
+			departmentId: 0,
+			managerId: 0
+		}).primaryKey("id")
+			.foreignKey("departmentId", departments, "id", {onDelete: "CASCADE"});
+		employees.foreignKey("managerId", employees, "id");
 		
 		// Initial complex structure
 		const instructions: DatabaseInstructions = {
 			dialect: "Sqlite",
-			tables: {
-				departments: {
-					columns: {
-						id: 0,
-						name: ""
-					},
-					tableInfo: {primaryKey: "id"}
-				},
-				employees: {
-					columns: {
-						id: 0,
-						firstName: "",
-						lastName: "",
-						departmentId: 0,
-						managerId: 0
-					},
-					tableInfo: {
-						primaryKey: "id",
-						foreignKeys: [
-							{
-								fromTable: "employees",
-								fromColumn: "departmentId",
-								toTable: "departments",
-								toColumn: "id"
-							},
-							{
-								fromTable: "employees",
-								fromColumn: "managerId",
-								toTable: "employees",
-								toColumn: "id"
-							}
-						]
-					}
-				}
-			},
+			tables: [departments, employees],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
@@ -302,70 +257,37 @@ describe("Integration tests", () => {
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
+		
 		// Complex changes: rename columns, add new table, modify foreign keys
+		
+		(departments as TableObj<any>).columns.location = "";
+		(departments as TableObj<any>).columns.departmentName = "";
+		delete (departments as TableObj<any>).columns.name;
+		
+		(employees as TableObj<any>).columns.name = "";
+		delete (employees as TableObj<any>).columns.firstName;
+		delete (employees as TableObj<any>).columns.lastName;
+		(employees as TableObj<any>).columns.supervisorId = 0;
+		delete (employees as TableObj<any>).columns.managerId;
+		
+		(employees as TableObj<any>).tableInfo.foreignKeys![0].onDelete = "SET NULL"; //modified
+		(employees as TableObj<any>).tableInfo.foreignKeys!.pop();
+		
+		const employeesHistory = TableObj.create("employees_history", {
+			id: 0,
+			employeeId: 0,
+			changeDate: "",
+			changeType: ""
+		}).primaryKey("id")
+			.foreignKey("employeeId", employees, "id", {onDelete: "CASCADE"});
+		
 		instructions.version = 2;
-		instructions.tables = {
-			departments: {
-				columns: {
-					id: 0,
-					departmentName: "", // renamed from name
-					location: "" // new column
-				},
-				tableInfo: {primaryKey: "id"}
-			},
-			employees: {
-				columns: {
-					id: 0,
-					fullName: "", // combined from firstName and lastName
-					departmentId: 0,
-					supervisorId: 0 // renamed from managerId
-				},
-				tableInfo: {
-					primaryKey: "id",
-					foreignKeys: [
-						{
-							fromTable: "employees",
-							fromColumn: "departmentId",
-							toTable: "departments",
-							toColumn: "id",
-							onDelete: "SET NULL" // modified constraint
-						},
-						{
-							fromTable: "employees",
-							fromColumn: "supervisorId",
-							toTable: "employees",
-							toColumn: "id",
-							onDelete: "SET NULL"
-						}
-					]
-				}
-			},
-			employee_history: { // new table
-				columns: {
-					id: 0,
-					employeeId: 0,
-					changeDate: "",
-					changeType: ""
-				},
-				tableInfo: {
-					primaryKey: "id",
-					foreignKeys: [
-						{
-							fromTable: "tableInfo",
-							fromColumn: "employeeId",
-							toTable: "employees",
-							toColumn: "id",
-							onDelete: "CASCADE"
-						}
-					]
-				}
-			}
-		};
+		instructions.tables.push(employeesHistory);
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameColumn(2, "departments", "name", "departmentName");
-			migrations.renameColumn(2, "employees", "managerId", "supervisorId");
-			migrations.allowMigration(2, "employees", "removeForeignKey");
+			migrations.renameColumn(2, departments, "name", "departmentName");
+			migrations.renameColumn(2, employees, "managerId", "supervisorId");
+			migrations.allowMigration(2, employees, "removeForeignKey");
 		};
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
