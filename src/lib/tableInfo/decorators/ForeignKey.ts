@@ -1,7 +1,7 @@
 import {TableClassInterface, Class} from "../../typings/TableClassInterface";
 import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
-import "polyfill-symbol-metadata";
-import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import {ForeignKeyActions} from "../../typings/ForeignKeyInfo";
 
 /**
  * Decorator function to define a foreign key constraint for a database table. It defines a relationship
@@ -9,7 +9,7 @@ import {ForeignKeyActions} from "../../typings/ForeignKeyInfo"; //Temporary fix.
  *
  * @param toTable - The target table class to which the foreign key points.
  * @param toColumn - The column name in the target table to which the foreign key points.
- * @param options - Optional. The action to perform when a row in the target table is deleted.
+ * @param options - Additional options.
  */
 export default function ForeignKey<
 	TOther extends TableClassInterface

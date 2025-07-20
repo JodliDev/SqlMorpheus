@@ -6,7 +6,7 @@ import {SqlChanges} from "../src";
 import DefaultSql from "../src/lib/dialects/DefaultSql";
 import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
 import NotAllowedException from "../src/lib/exceptions/NotAllowedException";
-import {TableObj} from "../src/lib/TableObj";
+import {TableObj} from "../src/lib/tableInfo/TableObj";
 import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 
 class DefaultDialect extends DefaultSql {
@@ -132,7 +132,7 @@ describe("MigrationManager", () => {
 		mockDialect.getColumnInformation = () => Promise.resolve([
 			{
 				name: "oldColumnA",
-				type: mockDialect.typeString,
+				type: mockDialect.types.string,
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
@@ -160,7 +160,7 @@ describe("MigrationManager", () => {
 		mockDialect.getColumnInformation = () => Promise.resolve([
 			{
 				name: "oldColumnA",
-				type: mockDialect.typeString,
+				type: mockDialect.types.string,
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}

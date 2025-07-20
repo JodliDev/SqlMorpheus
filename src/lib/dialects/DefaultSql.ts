@@ -1,6 +1,7 @@
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
 const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
 
@@ -11,18 +12,38 @@ export default abstract class DefaultSql {
 	public canInspectForeignKeys: boolean = false;
 	public canInspectPrimaryKey: boolean = false;
 	
-	public typeString = "TEXT";
-	public typeInt = "INTEGER";
-	public typeBigInt = "BIGINT";
-	public typeBoolean = "BOOLEAN";
-	public typeNull = "NULL";
+	public types = {
+		string: "TEXT",
+		number: "INTEGER",
+		bigint: "BIGINT",
+		boolean: "BOOLEAN",
+		date: "DATE",
+		time: "TIME",
+		dateTime: "DATETIME",
+		null: "NULL",
+	};
 	
 	constructor(db: DatabaseAccess) {
 		this.db = db;
 	}
 	
-	public formatValueToSql(value: any): string {
-		return value.toString();
+	public formatValueToSql(value: any, type: DataTypeOptions): string {
+		function toDate(value: any): Date {
+			return (value instanceof Date) ? value : new Date(value);
+		}
+		
+		switch(type) {
+			case "string":
+				return `"${value}"`;
+			case "time":
+				return toDate(value).toISOString().slice(11, 19);
+			case "date":
+				return toDate(value).toISOString().slice(0, 10);
+			case "dateTime":
+				return toDate(value).toISOString().slice(0, 19).replace("T", " ");
+			default:
+				return value.toString();
+		}
 	}
 	
 	public changeForeignKeysState(enabled: boolean): string {
@@ -98,7 +119,7 @@ export default abstract class DefaultSql {
 	
 	protected migrationTableQuery(): string {
 		return this.createTable(MIGRATION_DATA_TABLE_NAME, [
-			this.columnDefinition("version", this.typeInt, "0", false)
+			this.columnDefinition("version", this.types.number, "0", false)
 		]);
 	}
 	

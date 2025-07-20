@@ -1,6 +1,6 @@
 import {TableClassInterface, Class} from "../../typings/TableClassInterface";
 import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
-import "polyfill-symbol-metadata";
+import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 /**
  * Decorator function to configure a database table with its name and primary key

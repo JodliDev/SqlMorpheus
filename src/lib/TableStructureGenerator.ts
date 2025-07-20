@@ -5,7 +5,7 @@ import {TableStructure} from "./typings/TableStructure";
 import DefaultSql from "./dialects/DefaultSql";
 import {Logger} from "./Logger";
 import TableInfo, {getTableInfo} from "./tableInfo/TableInfo";
-import {TableObj} from "./TableObj";
+import {TableObj} from "./tableInfo/TableObj";
 
 export type TableInputStructure = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
 
@@ -50,41 +50,40 @@ export default class TableStructureGenerator {
 	}
 	
 	
-	private getColumns(obj: TableClassInterface, primaryKey?: TableInfo): ColumnInfo[] {
+	private getColumns(obj: TableClassInterface, tableInfo?: TableInfo): ColumnInfo[] {
 		const columns: ColumnInfo[] = [];
 		for(const property in obj) {
 			const propertyKey = property as keyof TableClassInterface;
 			const value = obj[propertyKey];
 			const columnData = {
 				name: property,
-				isPrimaryKey: property == primaryKey,
-				type: "TEXT",
-				defaultValue: this.dialect.typeNull
+				isPrimaryKey: property == tableInfo?.primaryKey,
+				type: this.dialect.types.string,
+				defaultValue: this.dialect.types.null
 			} satisfies ColumnInfo;
 			
-			switch(typeof value) {
-				case "string":
-					columnData.type = this.dialect.typeString;
-					columnData.defaultValue = value === null ? this.dialect.typeNull : `"${this.dialect.formatValueToSql(value)}"`;
-					break
-				case "bigint":
-					columnData.type = this.dialect.typeBigInt;
-					columnData.defaultValue = value === null ? this.dialect.typeNull : this.dialect.formatValueToSql(value);
-					break
-				case "number":
-					columnData.type = this.dialect.typeInt;
-					columnData.defaultValue = value === null ? this.dialect.typeNull : this.dialect.formatValueToSql(value);
-					break
-				case "boolean":
-					columnData.type = this.dialect.typeBoolean;
-					columnData.defaultValue = value === null ? this.dialect.typeNull : this.dialect.formatValueToSql(value);
-					break
+			let dataType = tableInfo?.dataTypes?.[property] ?? typeof value;
+			switch(dataType) {
 				case "function":
-					continue;
-				default:
-					Logger.warn(`${obj.constructor.name}.${property} was skipped because its type is not supported (${typeof value})`);
+					continue
+				case "object":
+					if(value instanceof Date) {
+						dataType = "date";
+						break;
+					}
+					else {
+						Logger.warn(`${property} was skipped because its type (${typeof value}) is not supported`);
+						continue;
+					}
+				case "undefined":
+				case "symbol":
+					Logger.warn(`${property} was skipped because its type (${typeof value}) is not supported`);
 					continue;
 			}
+			
+			columnData.defaultValue = value === null ? this.dialect.types.null : this.dialect.formatValueToSql(value, dataType);
+			columnData.type = this.dialect.types[dataType];
+			
 			
 			columns.push(columnData);
 		}

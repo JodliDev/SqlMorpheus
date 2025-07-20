@@ -1,6 +1,6 @@
 {
   "name": "sqlmorpheus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "JodliDev",
   "keywords": [],
   "license": "MIT",
@@ -23,7 +23,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "run_publish": "npm publish"
+    "build_and_publish": "npm run build && npm publish"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

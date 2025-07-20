@@ -3,7 +3,7 @@ import MigrationInstructions from "./MigrationInstructions";
 import MigrationNotAllowedException from "../exceptions/NotAllowedException";
 import DatabaseInstructions, {TableInput} from "./DatabaseInstructions";
 import {TableStructure} from "./TableStructure";
-import {TableObj} from "../TableObj";
+import {TableObj} from "../tableInfo/TableObj";
 
 export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
 

@@ -1,11 +1,13 @@
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {TableClassInterface, Class} from "../typings/TableClassInterface";
+import {DataTypeOptions} from "./DataTypeOptions";
 
 export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 
 export default interface TableInfo {
 	primaryKey?: string;
 	foreignKeys?: ForeignKeyInfo[];
+	dataTypes?: Record<string, DataTypeOptions>;
 }
 
 /**

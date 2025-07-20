@@ -1,5 +1,6 @@
-import TableInfo from "./tableInfo/TableInfo";
-import {ForeignKeyActions, ForeignKeyInfo} from "./typings/ForeignKeyInfo";
+import TableInfo from "./TableInfo";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {DataTypeOptions} from "./DataTypeOptions";
 
 type DataFormat = Record<string, unknown>;
 type GetColumns<T> = T extends TableObjBuilder<infer Item, any> ? Item : never;
@@ -13,20 +14,21 @@ export class TableObj<T extends DataFormat> {
 	
 	public tableInfo: TableInfo =  {
 		primaryKey: undefined as undefined | string,
-		foreignKeys: [] as ForeignKeyInfo[]
+		foreignKeys: [] as ForeignKeyInfo[],
+		dataTypes: {}
 	};
 	
 	constructor(tableName: string, columns: T) {
 		this.tableName = tableName;
 		this.columns = columns;
 	}
-	public primaryKey(key: keyof T): TableObjBuilder<T, "foreignKey">  {
+	public primaryKey(key: keyof T): TableObjBuilder<T, "foreignKey" | "dataType">  {
 		this.tableInfo.primaryKey = key.toString();
 		
 		return this;
 	}
-	public foreignKey<TOther extends TableObjBuilder<DataFormat, any>>(fromColumn: keyof T, toTable: TOther, toColumn: keyof GetColumns<TOther>, options?: {onUpdate?: ForeignKeyActions, onDelete?: ForeignKeyActions}): TableObjBuilder<T, "foreignKey">  {
-		this.tableInfo.foreignKeys?.push({
+	public foreignKey<TOther extends TableObjBuilder<DataFormat, any>>(fromColumn: keyof T, toTable: TOther, toColumn: keyof GetColumns<TOther>, options?: {onUpdate?: ForeignKeyActions, onDelete?: ForeignKeyActions}): TableObjBuilder<T, "foreignKey" | "dataType">  {
+		this.tableInfo.foreignKeys!.push({
 			fromTable: this.tableName,
 			fromColumn: fromColumn.toString(),
 			toTable: toTable.tableName!,
@@ -36,8 +38,12 @@ export class TableObj<T extends DataFormat> {
 		});
 		return this;
 	}
+	public dataType(column: keyof T, type: DataTypeOptions): TableObjBuilder<T, "foreignKey" | "dataType"> {
+		this.tableInfo.dataTypes![column.toString()] = type;
+		return this;
+	}
 	
-	public static create<T extends Record<string, unknown>>(tableName: string, columns: T): TableObjBuilder<T, "primaryKey" | "foreignKey"> {
+	public static create<T extends Record<string, unknown>>(tableName: string, columns: T): TableObjBuilder<T, "primaryKey" | "foreignKey" | "dataType"> {
 		return new TableObj<T>(tableName, columns);
 	}
 	

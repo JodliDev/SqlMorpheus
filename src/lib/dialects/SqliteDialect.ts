@@ -1,10 +1,19 @@
 import DefaultSql from "./DefaultSql";
 import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {ColumnInfo} from "../typings/ColumnInfo";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
 export default class SqliteDialect extends DefaultSql {
-	public typeBoolean = "INTEGER";
-	public typeBigInt = "INTEGER";
+	public types = {
+		string: "TEXT",
+		number: "INTEGER",
+		bigint: "INTEGER",
+		boolean: "INTEGER",
+		date: "DATE",
+		time: "TIME",
+		dateTime: "DATETIME",
+		null: "NULL",
+	};
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	public canInspectForeignKeys: boolean = true;
@@ -32,12 +41,19 @@ export default class SqliteDialect extends DefaultSql {
 		});
 	}
 	
-	public formatValueToSql(value: any): string {
-		switch(typeof value) {
+	public formatValueToSql(value: any, type: DataTypeOptions): string {
+		function toDate(value: any): Date {
+			return (value instanceof Date) ? value : new Date(value);
+		}
+		switch(type) {
 			case "boolean":
 				return value ? "1" : "0";
+			case "date":
+			case "time":
+			case "dateTime":
+				return toDate(value).getTime().toString();
 			default:
-				return value.toString();
+				return super.formatValueToSql(value, type);
 		}
 	}
 	
