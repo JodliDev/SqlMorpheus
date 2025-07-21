@@ -5,7 +5,7 @@ import BetterSqlite3 from "better-sqlite3";
 import * as fs from "node:fs";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
 import {prepareAndRunMigration, PublicMigrations, SqlChanges} from "../src";
-import {TableObj} from "../src/lib/tableInfo/TableObj";
+import TableObj from "../src/lib/tableInfo/TableObj";
 
 describe("Integration tests", () => {
 	const configPath = `${process.cwd()}/config/`;

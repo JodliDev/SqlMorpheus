@@ -5,7 +5,7 @@ import {TableStructure} from "./typings/TableStructure";
 import DefaultSql from "./dialects/DefaultSql";
 import {Logger} from "./Logger";
 import TableInfo, {getTableInfo} from "./tableInfo/TableInfo";
-import {TableObj} from "./tableInfo/TableObj";
+import TableObj from "./tableInfo/TableObj";
 
 export type TableInputStructure = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
 

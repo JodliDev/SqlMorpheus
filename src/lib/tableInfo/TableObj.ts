@@ -7,7 +7,12 @@ type GetColumns<T> = T extends TableObjBuilder<infer Item, any> ? Item : never;
 type TableObjBuilder<T extends DataFormat, TPick extends keyof TableObj<T>> =  Pick<TableObj<T>, TPick>;
 export type TableObjInput = TableObjBuilder<any, any>;
 
-export class TableObj<T extends DataFormat> {
+/**
+ * Use this class to define tables for DatabaseInstructions
+ * (as an alternative for Class decorators)
+ *
+ */
+export default class TableObj<T extends DataFormat> {
 	public readonly IS_TABLE_OBJ = true;
 	public readonly tableName: string;
 	public readonly columns: T;
@@ -18,7 +23,7 @@ export class TableObj<T extends DataFormat> {
 		dataTypes: {}
 	};
 	
-	constructor(tableName: string, columns: T) {
+	private constructor(tableName: string, columns: T) {
 		this.tableName = tableName;
 		this.columns = columns;
 	}
@@ -48,6 +53,6 @@ export class TableObj<T extends DataFormat> {
 	}
 	
 	public static isDbTable(obj: unknown): obj is TableObj<any> {
-		return (obj as TableObj<any>).IS_TABLE_OBJ
+		return !!(obj as TableObj<any>)?.IS_TABLE_OBJ
 	}
 }

@@ -1,5 +1,5 @@
 import {TableClassInterface, Class} from "./TableClassInterface";
-import {PublicMigrations} from "./Migrations";
+import {PublicMigrations} from "../Migrations";
 import {SqlChanges} from "./SqlChanges";
 import AllowedMigrations from "./AllowedMigrations";
 import {TableObjInput} from "../tableInfo/TableObj";
