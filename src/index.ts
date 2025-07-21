@@ -6,7 +6,7 @@ import {Logger} from "./lib/Logger";
 import TableClass from "./lib/tableInfo/decorators/TableClass";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey";
 import getDialect from "./lib/getDialect";
-import {PublicMigrations} from "./lib/typings/Migrations";
+import {PublicMigrations} from "./lib/Migrations";
 import {SqlChanges} from "./lib/typings/SqlChanges";
 
 export async function prepareMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions, overwriteExisting?: boolean): Promise<void> {

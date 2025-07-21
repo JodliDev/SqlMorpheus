@@ -1,9 +1,10 @@
-import AllowedMigrations from "./AllowedMigrations";
-import MigrationInstructions from "./MigrationInstructions";
-import MigrationNotAllowedException from "../exceptions/NotAllowedException";
-import DatabaseInstructions, {TableInput} from "./DatabaseInstructions";
-import {TableStructure} from "./TableStructure";
-import {TableObj} from "../tableInfo/TableObj";
+import AllowedMigrations from "./typings/AllowedMigrations";
+import MigrationInstructions from "./typings/MigrationInstructions";
+import MigrationNotAllowedException from "./exceptions/NotAllowedException";
+import DatabaseInstructions, {TableInput} from "./typings/DatabaseInstructions";
+import {TableStructure} from "./typings/TableStructure";
+import TableObj from "./tableInfo/TableObj";
+import {Logger} from "./Logger";
 
 export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
 
@@ -47,7 +48,7 @@ export class Migrations {
 	}
 	
 	private versionIsRelevant(version: number): boolean {
-		if(version < this.fromVersion || version > this.toVersion)
+		if(version <= this.fromVersion || version > this.toVersion)
 			return false;
 		
 		if(version < this.lastUsedVersion)
@@ -137,15 +138,16 @@ export class Migrations {
 		return this.migrationData[tableName]?.recreate;
 	}
 	
-	public internalRecreate(tableName: string) {
+	public internalRecreate(tableName: string, reason: string) {
 		const entry = this.getEntryFromTableName(tableName);
 		entry.recreate = true;
+		Logger.log(`Table ${tableName} will be recreated(${reason})!`);
 	}
 	
 	
 	
 	public allowMigration(version: number, table: TableInput, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
-		if(version < this.fromVersion || version > this.toVersion)
+		if(!this.versionIsRelevant(version))
 			return;
 		const entry = this.getEntry(table);
 		
@@ -185,6 +187,7 @@ export class Migrations {
 			return;
 		const entry = this.getEntry(table);
 		entry.recreate = true;
+		Logger.log(`Table ${this.getTableName(table)} will be recreated!`);
 	}
 }
 

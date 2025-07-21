@@ -1,4 +1,4 @@
-import {NotAllowedChangeEntry} from "../typings/Migrations";
+import {NotAllowedChangeEntry} from "../Migrations";
 
 export default class NotAllowedException extends Error {
 	constructor(entries: NotAllowedChangeEntry[]) {

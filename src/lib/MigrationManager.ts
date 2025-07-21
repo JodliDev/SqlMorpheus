@@ -255,7 +255,6 @@ export class MigrationManager {
 			if(!migrationEntry.recreate)
 				continue;
 			
-			Logger.log(`Table ${tableName} will be recreated!`);
 			this.migrations.compareWithAllowedMigration(tableName, "recreateTable");
 			if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
 				this.migrations.compareWithAllowedMigration(tableName, "continueWithoutRollback");
@@ -327,7 +326,7 @@ export class MigrationManager {
 						);
 					}
 					else {
-						this.migrations.internalRecreate(structure.table);
+						this.migrations.internalRecreate(structure.table, "Dialect does not support altering foreign keys");
 						checkForNewForeignKeys = false;
 					}
 				}
@@ -353,7 +352,7 @@ export class MigrationManager {
 							
 						}
 						else {
-							this.migrations.internalRecreate(structure.table);
+							this.migrations.internalRecreate(structure.table, "Dialect does not support altering foreign keys");
 							checkForNewForeignKeys = false;
 						}
 					}
@@ -377,7 +376,7 @@ export class MigrationManager {
 						
 						changes.down += this.dialect.removeForeignKey(newForeignKey.fromTable, newForeignKey.fromColumn);
 					} else {
-						this.migrations.internalRecreate(structure.table);
+						this.migrations.internalRecreate(structure.table, "Dialect does not support altering foreign keys");
 						break;
 					}
 				}
@@ -425,7 +424,7 @@ export class MigrationManager {
 					}
 				}
 				else
-					this.migrations.internalRecreate(newTableDefinition.table);
+					this.migrations.internalRecreate(newTableDefinition.table, "Dialect does not support altering primary keys");
 				continue;
 			}
 			
@@ -440,7 +439,7 @@ export class MigrationManager {
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
 				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
-					this.migrations.internalRecreate(newTableDefinition.table);
+					this.migrations.internalRecreate(newTableDefinition.table, "Table structure was changed");
 				}
 			}
 			
