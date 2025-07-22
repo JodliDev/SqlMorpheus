@@ -3,6 +3,9 @@ import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
+/**
+ * SQLite-specific syntax for SQL queries
+ */
 export default class SqliteDialect extends DefaultSql {
 	public types = {
 		string: "TEXT",

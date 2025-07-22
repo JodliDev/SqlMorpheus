@@ -9,6 +9,9 @@ import TableObj from "./tableInfo/TableObj";
 
 export type TableInputStructure = Record<string, { columns: TableClassInterface, tableInfo?: TableInfo }>;
 
+/**
+ * Represents a generator for creating table structures based on specified database instructions
+ */
 export default class TableStructureGenerator {
 	private readonly dialect: DefaultSql;
 	private readonly dbInstructions: DatabaseInstructions;
@@ -18,7 +21,13 @@ export default class TableStructureGenerator {
 		this.dbInstructions = dbInstructions;
 	}
 	
+	/**
+	 * Generates the structure of tables based on database instructions.
+	 *
+	 * @return An object where keys are table names, and values are their corresponding table structures.
+	 */
 	public generateTableStructure(): Record<string, TableStructure> {
+		//prepare data:
 		const tableObjects: TableInputStructure = {};
 		for(const table of this.dbInstructions.tables) {
 			if(TableObj.isDbTable(table))
@@ -28,10 +37,8 @@ export default class TableStructureGenerator {
 				tableObjects[classTable.name] = {columns: new classTable, tableInfo: getTableInfo(classTable)};
 			}
 		}
-		return this.getExpectedStructure(tableObjects);
-	}
-	
-	private getExpectedStructure(tableObjects: TableInputStructure): Record<string, TableStructure> {
+		
+		//create output:
 		const tables: Record<string, TableStructure> = {};
 		for(const tableName in tableObjects) {
 			const obj = tableObjects[tableName];
@@ -50,6 +57,13 @@ export default class TableStructureGenerator {
 	}
 	
 	
+	/**
+	 * Retrieves the columns for a table
+	 *
+	 * @param obj - The table class interface object containing  properties that represent the table's fields.
+	 * @param tableInfo - Optional metadata about the table. Can be undefined.
+	 * @return An array of {@link ColumnInfo} representing the detailed column information.
+	 */
 	private getColumns(obj: TableClassInterface, tableInfo?: TableInfo): ColumnInfo[] {
 		const columns: ColumnInfo[] = [];
 		for(const property in obj) {

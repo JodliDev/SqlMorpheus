@@ -3,8 +3,7 @@ import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 /**
- * Decorator function to configure a database table with its name and primary key
- * and to add missing "fromTable" properties to foreign keys.
+ * Decorator function to configure a database table with its name and primary key.
  *
  * @param tableName - The name of the database table used in SQL.
  * @param primaryKey - The property name representing the primary property of the table.

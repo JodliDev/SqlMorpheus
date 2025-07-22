@@ -4,7 +4,7 @@ import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomt
 import {ForeignKeyActions} from "../../typings/ForeignKeyInfo";
 
 /**
- * Defines a self-referencing foreign key relationship within a table.
+ * Decorator function to define a self-referencing foreign key relationship within a table.
  * This decorator must be used at the head of the class.
  *
  * @param fromColumn - The column in the table that acts as the foreign key reference.
