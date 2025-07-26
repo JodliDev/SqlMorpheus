@@ -12,9 +12,9 @@ export default class SqliteDialect extends DefaultSql {
 		number: "INTEGER",
 		bigint: "INTEGER",
 		boolean: "INTEGER",
-		date: "DATE",
-		time: "TIME",
-		dateTime: "DATETIME",
+		date: "INTEGER",
+		time: "INTEGER",
+		dateTime: "INTEGER",
 		null: "NULL",
 	};
 	public canAlterForeignKeys: boolean = false;

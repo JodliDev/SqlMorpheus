@@ -7,6 +7,6 @@
     <file url="file://$PROJECT_DIR$/src/lib/dialects/SqliteDialect.ts" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/tests/MigrationHistoryManager.test.ts" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/tests/MigrationManager.test.ts" dialect="GenericSQL" />
-    <file url="file://$PROJECT_DIR$/tests/sqlite.integration.test.ts" dialect="SQLite" />
+    <file url="file://$PROJECT_DIR$/tests/integration.test.ts" dialect="SQLite" />
   </component>
 </project>
