@@ -2,9 +2,9 @@ import {NotAllowedChangeEntry} from "../Migrations";
 
 export default class NotAllowedException extends Error {
 	constructor(entries: NotAllowedChangeEntry[]) {
-		let message = "Some destructive changes need to be confirmed.\n\tIn preMigration() run:\n";
+		let message = "Some destructive changes need to be confirmed. In preMigration() run:\n";
 		for(const entry of entries) {
-			message += `\t\tmigrations.allowMigration(${entry.version}, "${entry.tableName}", "${entry.type}");\n`;
+			message += `\t\tmigrations.allowMigration(${entry.version}, ${entry.tableName}, "${entry.type}");\n`;
 		}
 		super(message);
 	}
