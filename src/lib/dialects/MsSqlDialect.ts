@@ -38,19 +38,22 @@ export default class MsSqlDialect extends DefaultSql {
 	}
 	
 	public async getTableNames(): Promise<string[]> {
-		return await this.db.runGetStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'") as string[];
+		return (await this.db.runGetStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'") as Record<string, string>[])
+			.map(entry => entry.name);
 	}
 	
-	public async getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
+	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 		const data = await this.db.runGetStatement(`SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'${tableName};'`);
-		
-		return (data as Record<string, string>[]).map(entry => {
-			return {
-				name: entry["COLUMN_NAME"],
+		const output: Record<string, ColumnInfo> = {};
+		for(const entry of data as Record<string, string>[]) {
+			output[entry["name"]] = {
+				name: entry["name"],
 				type: entry["DATA_TYPE"],
+				maxLength: 0,
 				defaultValue: entry["COLUMN_DEFAULT"],
-				isPrimaryKey: false,
-			};
-		});
+				isPrimaryKey: entry["pk"] == "1",
+			}
+		}
+		return output;
 	}
 }

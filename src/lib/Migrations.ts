@@ -126,7 +126,7 @@ export class Migrations {
 				
 				if(oldColumnName == newColumnName)
 					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to itself!`);
-				else if(!newTables[tableName]?.columns.find((column) => column.name == newColumnName))
+				else if(!newTables[tableName]?.columns[newColumnName])
 					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to ${tableName}.${newColumnName}. But ${tableName}.${newColumnName} does not exist in your structure.`);
 			}
 		}

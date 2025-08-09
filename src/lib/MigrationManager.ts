@@ -210,12 +210,13 @@ export class MigrationManager {
 	 * including the source column, target table, target column, action on update, and action on delete.
 	 * @return The complete SQL string to create the table with the specified structure and constraints.
 	 */
-	private createTableSql(tableName: string, columns: ColumnInfo[], foreignKeys?: ForeignKeyInfo[]): string {
+	private createTableSql(tableName: string, columns: Record<string, ColumnInfo>, foreignKeys?: ForeignKeyInfo[]): string {
 		
 		//columns:
 		const queryLines = [];
-		for(const columnInfo of columns) {
-			queryLines.push(this.dialect.columnDefinition(columnInfo.name, columnInfo.type, columnInfo.defaultValue, columnInfo.isPrimaryKey))
+		for(const key in columns) {
+			const columnInfo = columns[key];
+			queryLines.push(this.dialect.columnDefinition(columnInfo.name, columnInfo.type, columnInfo.isPrimaryKey, columnInfo.defaultValue))
 		}
 		
 		//foreign keys:
@@ -261,9 +262,11 @@ export class MigrationManager {
 				
 			const oldColumnList = await this.dialect.getColumnInformation(this.migrations.getOldTableName(tableName));
 			const newColumnList = this.newTables[tableName].columns;
-			const moveableColumns = newColumnList
-				.filter(entry => oldColumnList.find(oldEntry => oldEntry.name == entry.name) != undefined)
-				.map(entry => entry.name);
+			const moveableColumns: string[] = [];
+			for(const key in newColumnList) {
+				if(oldColumnList.hasOwnProperty(key))
+					moveableColumns.push(newColumnList[key].name);
+			}
 			
 			const backupTableName = `${tableName}__backup`;
 			const insertQuery = this.dialect.insert(
@@ -280,7 +283,7 @@ export class MigrationManager {
 			changes.up += this.createTableSql(backupTableName, structure.columns, structure.foreignKeys)
 				+ "\n"
 				+ moveDataQuery
-				+ "\n"
+				+ "\n\n"
 			
 			const dbTableName = this.migrations.getOldTableName(tableName);
 			changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
@@ -403,8 +406,11 @@ export class MigrationManager {
 			const newTableDefinition = this.newTables[tableName];
 			
 			const oldColumnList = await this.dialect.getColumnInformation(this.migrations.getOldTableName(tableName));
-			
 			const oldPrimaryKey = this.dialect.canInspectPrimaryKey ? this.getPrimaryKeyColumn(oldColumnList) : false;
+			const oldColumnNewNameIndex: Record<string, ColumnInfo> = {};
+			for(const key in oldColumnList) {
+				oldColumnNewNameIndex[this.migrations.getNewestColumnName(tableName, key)] = oldColumnList[key];
+			}
 			
 			const newColumnList = newTableDefinition.columns;
 			const newPrimaryKey = newTableDefinition.primaryKey;
@@ -428,14 +434,19 @@ export class MigrationManager {
 				continue;
 			}
 			
+			const renamedColumns = this.migrations.getMigrationData()[tableName].renamedColumns;
+			
 			//Search for added or changed columns:
-			for(const newColumn of newColumnList) {
-				const oldColumn = oldColumnList.find(entry =>
-					this.migrations.getNewestColumnName(tableName, entry.name) == newColumn.name
-				);
+			for(const key in newColumnList) {
+				const newColumn = newColumnList[key];
+				const oldColumn = oldColumnNewNameIndex[newColumn.name];
+				const willBeRenamed = renamedColumns.find(entry => entry.newName);
+				
+				if(willBeRenamed)
+					continue;
 				
 				if(oldColumn == undefined) {
-					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.type, newColumn.defaultValue, newColumn.isPrimaryKey)) + "\n";
+					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.type, newColumn.isPrimaryKey, newColumn.defaultValue)) + "\n";
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
 				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
@@ -444,14 +455,14 @@ export class MigrationManager {
 			}
 			
 			//Search for removed columns:
-			for(const oldColumn of oldColumnList) {
-				const newColumn = newColumnList.find(entry =>
-					entry.name == this.migrations.getNewestColumnName(tableName, oldColumn.name)
-				);
+			for(const key in oldColumnList) {
+				const oldColumn = oldColumnList[key];
+				const newColumn = newColumnList[this.migrations.getNewestColumnName(tableName, oldColumn.name)];
+				
 				if(newColumn == undefined) {
 					this.migrations.compareWithAllowedMigration(tableName, "dropColumn");
 					changes.up += this.dialect.dropColumn(tableName, oldColumn.name) + "\n";
-					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.type, oldColumn.defaultValue, oldColumn.isPrimaryKey)) + "\n";
+					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.type, oldColumn.isPrimaryKey, oldColumn.defaultValue)) + "\n";
 				}
 			}
 		}
@@ -462,11 +473,12 @@ export class MigrationManager {
 	/**
 	 * Retrieves the name of the primary key column from a list of column information.
 	 *
-	 * @param columnInfoList - An array of ColumnInfo objects containing details about each column.
+	 * @param columnInfoEntries - An array of ColumnInfo objects containing details about each column.
 	 * @return The name of the primary key column if found; otherwise, undefined.
 	 */
-	private getPrimaryKeyColumn(columnInfoList: ColumnInfo[]): string | undefined{
-		for(const columnInfo of columnInfoList) {
+	private getPrimaryKeyColumn(columnInfoEntries: Record<string, ColumnInfo>): string | undefined{
+		for(const key in columnInfoEntries) {
+			const columnInfo = columnInfoEntries[key];
 			if(columnInfo.isPrimaryKey)
 				return columnInfo.name
 		}

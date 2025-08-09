@@ -1,6 +1,7 @@
-import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 import {DataTypeOptions} from "../DataTypeOptions";
+
+import {getInputColumnInfo} from "../getTableStructure";
 
 /**
  * Decorator function to assign a specific data type to a column.
@@ -13,11 +14,7 @@ export default function DataType(
 	type: DataTypeOptions
 ) {
 	return (table: any, context: any) => {
-		
-		const metadata = context?.metadata ? getTableInfoFromMetadata(context.metadata) : getTableInfo(table);
-		if(!metadata.dataTypes)
-			metadata.dataTypes = {};
-		
-		metadata.dataTypes[context.name ?? context] = type;
+		const entry = getInputColumnInfo(table, context);
+		entry.inputType = type;
 	}
 }

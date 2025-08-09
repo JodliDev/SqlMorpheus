@@ -1,6 +1,7 @@
-import {TableClassInterface, Class} from "../../typings/TableClassInterface";
-import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
-import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import {Class, TableClassInterface} from "../../typings/TableClassInterface";
+import "polyfill-symbol-metadata";
+import TableObj from "../TableObj";
+import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 /**
  * Decorator function to configure a database table with its name and primary key.
@@ -10,17 +11,36 @@ import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomt
  */
 export default function TableClass<T extends TableClassInterface>(tableName: string, primaryKey?: keyof T) {
 	return (table: Class<T>, context?: any) => {
-		const tableInfo = context?.metadata ? getTableInfoFromMetadata(context.metadata) : getTableInfo(table);
-		tableInfo.primaryKey = primaryKey?.toString();
+		const tableStructure = context?.metadata ? getTableStructureFromMetadata(context.metadata) : getTableStructure(table);
+		tableStructure.primaryKey = primaryKey?.toString();
+		tableStructure.table = tableName;
 		
-		if(tableInfo.foreignKeys) {
-			for(const foreignKey of tableInfo.foreignKeys) {
+		//fix foreignKeys:
+		if(tableStructure.foreignKeys) {
+			for(const foreignKey of tableStructure.foreignKeys) {
 				foreignKey.fromTable = tableName;
 				if(foreignKey.toTable == table.name)
 					foreignKey.toTable = tableName;
 			}
 		}
 		
+		const obj = new table;
+		//fill missing entries:
+		for(const key in obj) {
+			const value = obj[key as keyof Class<T>];
+			const existingEntry = tableStructure.columns[key];
+			const defaultEntry = TableObj.getColumnEntry(key, value);
+			if(!defaultEntry)
+				continue;
+			if(key == primaryKey)
+				defaultEntry.isPrimaryKey = true;
+			tableStructure.columns[key] = {
+				...defaultEntry,
+				...existingEntry
+			};
+		}
+		
 		Object.defineProperty(table, "name", {value: tableName, writable: false});
 	}
 }
+

@@ -22,8 +22,8 @@ describe("TableStructureGenerator", () => {
 			null: "NULL",
 		};
 		
-		getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
-			return Promise.resolve([]);
+		getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
+			return Promise.resolve({});
 		}
 		
 		getTableNames(): Promise<string[]> {
@@ -125,15 +125,15 @@ describe("TableStructureGenerator", () => {
 		const tableHouse: TableStructure = tables["House"];
 		expect(tableHouse.primaryKey).toBe("houseId");
 		expect(tableHouse.foreignKeys).toMatchObject([]);
-		expect(tableHouse.columns).toMatchObject([
-			{name: "houseId", type: "BIGINT", defaultValue: "3", isPrimaryKey: true},
-			{name: "address", type: "TEXT", defaultValue: '"address"', isPrimaryKey: false},
-			{name: "stories", type: "INTEGER", defaultValue: "0", isPrimaryKey: false},
-			{name: "ownerName", type: "TEXT", defaultValue: "NULL", isPrimaryKey: false},
-			{name: "builtAt", type: "DATETIME", defaultValue: "2024-04-03 02:38:00", isPrimaryKey: false},
-			{name: "inhabitants", type: "BIGINT", defaultValue: "0", isPrimaryKey: false},
-			{name: "hasInternet", type: "BOOLEAN", defaultValue: "true", isPrimaryKey: false},
-		]);
+		expect(tableHouse.columns).toMatchObject({
+			houseId: {name: "houseId", type: "BIGINT", defaultValue: "3", isPrimaryKey: true},
+			address: {name: "address", type: "TEXT", defaultValue: '"address"', isPrimaryKey: false},
+			stories: {name: "stories", type: "INTEGER", defaultValue: "0", isPrimaryKey: false},
+			ownerName: {name: "ownerName", type: "TEXT", defaultValue: "NULL", isPrimaryKey: false},
+			builtAt: {name: "builtAt", type: "DATETIME", defaultValue: "\"2024-04-03 02:38:00\"", isPrimaryKey: false},
+			inhabitants: {name: "inhabitants", type: "BIGINT", defaultValue: "0", isPrimaryKey: false},
+			hasInternet: {name: "hasInternet", type: "BOOLEAN", defaultValue: "true", isPrimaryKey: false},
+		});
 		
 		const tableCar: TableStructure = tables["Car"];
 		expect(tableCar.primaryKey).toBe("carId");
@@ -153,15 +153,15 @@ describe("TableStructureGenerator", () => {
 				toColumn: "carId"
 			}
 		]);
-		expect(tableCar.columns).toMatchObject([
-			{name: "carId", type: "BIGINT", defaultValue: "5", isPrimaryKey: true},
-			{name: "belongsTo", type: "BIGINT", defaultValue: "1", isPrimaryKey: false},
-			{name: "isSimilarTo", type: "BIGINT", defaultValue: "9", isPrimaryKey: false},
-			{name: "electric", type: "BOOLEAN", defaultValue: "false", isPrimaryKey: false},
-			{name: "brand", type: "TEXT", defaultValue: '""', isPrimaryKey: false},
-			{name: "km", type: "INTEGER", defaultValue: '10', isPrimaryKey: false},
-			{name: "lastUsed", type: "DATE", defaultValue: '1989-02-01', isPrimaryKey: false},
-		]);
+		expect(tableCar.columns).toMatchObject({
+			carId: {name: "carId", type: "BIGINT", defaultValue: "5", isPrimaryKey: true},
+			belongsTo: {name: "belongsTo", type: "BIGINT", defaultValue: "1", isPrimaryKey: false},
+			isSimilarTo: {name: "isSimilarTo", type: "BIGINT", defaultValue: "9", isPrimaryKey: false},
+			electric: {name: "electric", type: "BOOLEAN", defaultValue: "false", isPrimaryKey: false},
+			brand: {name: "brand", type: "TEXT", defaultValue: "\"\"", isPrimaryKey: false},
+			km: {name: "km", type: "INTEGER", defaultValue: '10', isPrimaryKey: false},
+			lastUsed: {name: "lastUsed", type: "DATE", defaultValue: "\"1989-02-01\"", isPrimaryKey: false},
+		});
 	}
 	
 	

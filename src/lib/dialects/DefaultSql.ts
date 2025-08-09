@@ -2,6 +2,7 @@ import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
+import {TableStructure} from "../typings/TableStructure";
 
 const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
 
@@ -35,7 +36,7 @@ export default abstract class DefaultSql {
 	 * Formats a given value to a SQL-equivalent string based on the provided data type.
 	 *
 	 * @param value - The value to be formatted.
-	 * @param type - The data type of the value. Either determined through typeof or {@link TableInfo} setting
+	 * @param type - The data type of the value. Either determined through typeof or {@link TableStructure} setting
 	 * @return A string representation of the value formatted for SQL.
 	 */
 	public formatValueToSql(value: any, type: DataTypeOptions): string {
@@ -55,6 +56,10 @@ export default abstract class DefaultSql {
 			default:
 				return value.toString();
 		}
+	}
+	
+	public getSqlType(dataType: DataTypeOptions, _?: ColumnInfo) {
+		return this.types[dataType];
 	}
 	
 	/**
@@ -179,8 +184,8 @@ export default abstract class DefaultSql {
 	 * @param isPrimaryKey - Indicates whether the column is a primary key.
 	 * @return The constructed SQL column definition string.
 	 */
-	public columnDefinition(columnName: string, type: string, defaultValue: string, isPrimaryKey: boolean): string {
-		const query = `${columnName} ${type} DEFAULT ${defaultValue}`;
+	public columnDefinition(columnName: string, type: string, isPrimaryKey: boolean, defaultValue?: string): string {
+		const query = `${columnName} ${type}${defaultValue ? ` DEFAULT ${defaultValue}` : ""}`;
 		return isPrimaryKey ? `${query} PRIMARY KEY` : query;
 	}
 	
@@ -266,7 +271,7 @@ export default abstract class DefaultSql {
 	 */
 	protected migrationTableQuery(): string {
 		return this.createTable(MIGRATION_DATA_TABLE_NAME, [
-			this.columnDefinition("version", this.types.number, "0", false)
+			this.columnDefinition("version", this.types.number, false, "0")
 		]);
 	}
 	
@@ -276,7 +281,7 @@ export default abstract class DefaultSql {
 	 * @param tableName The name of the table whose column information is to be retrieved.
 	 * @return A promise that resolves to an array of {@link ColumnInfo} containing the details of the table's columns.
 	 */
-	public abstract getColumnInformation(tableName: string): Promise<ColumnInfo[]>;
+	public abstract getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>>;
 	
 	/**
 	 * Fetches the foreign keys for the specified table.

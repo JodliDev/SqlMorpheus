@@ -1,5 +1,5 @@
 import DefaultSql from "./DefaultSql";
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
@@ -31,17 +31,19 @@ export default class SqliteDialect extends DefaultSql {
 			.map((obj) => obj.name);
 	}
 	
-	public async getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
-		const data = await this.db.runGetStatement(`PRAGMA table_info(${tableName})`);
+	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
+		const data = await this.db.runGetStatement(`PRAGMA table_info(${tableName})`) as Record<string, string>[];
+		const output: Record<string, ColumnInfo> = {};
 		
-		return (data as Record<string, string>[]).map(entry => {
-			return {
+		for(const entry of data) {
+			output[entry["name"]] = {
 				name: entry["name"],
 				type: entry["type"],
 				defaultValue: entry["dflt_value"],
 				isPrimaryKey: entry["pk"] == "1",
-			};
-		});
+			}
+		}
+		return output;
 	}
 	
 	public formatValueToSql(value: any, type: DataTypeOptions): string {
@@ -68,8 +70,8 @@ export default class SqliteDialect extends DefaultSql {
 				fromColumn: entry["from"],
 				toTable: entry["table"],
 				toColumn: entry["to"],
-				on_update: entry["on_update"],
-				on_delete: entry["on_delete"],
+				onUpdate: (entry["on_update"] ?? "NO ACTION") as ForeignKeyActions,
+				onDelete: (entry["on_delete"] ?? "NO ACTION") as ForeignKeyActions,
 			}
 		});
 	}

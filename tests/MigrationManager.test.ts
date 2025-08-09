@@ -10,8 +10,8 @@ import TableObj from "../src/lib/tableInfo/TableObj";
 import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 
 class DefaultDialect extends DefaultSql {
-	getColumnInformation(_: string): Promise<ColumnInfo[]> {
-		return Promise.resolve([]);
+	getColumnInformation(_: string): Promise<Record<string, ColumnInfo>> {
+		return Promise.resolve({});
 	}
 	
 	getTableNames(): Promise<string[]> {
@@ -117,26 +117,25 @@ describe("MigrationManager", () => {
 		
 	});
 	
-	
 	it("should correctly rename a column", async() => {
 		//alter DatabaseInstructions:
 		const tableA = TableObj.create("TableA", {newColumnA: ""});
 		mockDbInstructions.tables = [tableA];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.renameColumn(1, tableA, "oldColumnA", "newColumnA");
+			migrations.renameColumn(2, tableA, "oldColumnA", "newColumnA");
 		}
 		
 		//alter dialect:
 		mockDialect.getVersion = () => Promise.resolve(1);
 		mockDialect.getTableNames = () => Promise.resolve(["TableA"]);
-		mockDialect.getColumnInformation = () => Promise.resolve([
-			{
+		mockDialect.getColumnInformation = () => Promise.resolve({
+			oldColumnA: {
 				name: "oldColumnA",
 				type: mockDialect.types.string,
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
-		]);
+		});
 		
 		//setup manager
 		const manager = new MigrationManager(mockDialect);
@@ -157,14 +156,14 @@ describe("MigrationManager", () => {
 		//alter dialect:
 		mockDialect.getVersion = () => Promise.resolve(1);
 		mockDialect.getTableNames = () => Promise.resolve(["TableA"]);
-		mockDialect.getColumnInformation = () => Promise.resolve([
-			{
+		mockDialect.getColumnInformation = () => Promise.resolve({
+			oldColumnA: {
 				name: "oldColumnA",
 				type: mockDialect.types.string,
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
-		]);
+		});
 		
 		//setup manager
 		const manager = new MigrationManager(mockDialect);

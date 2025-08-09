@@ -4,6 +4,6 @@ import {ForeignKeyInfo} from "./ForeignKeyInfo";
 export interface TableStructure {
 	table: string
 	primaryKey?: string
-	columns: ColumnInfo[]
+	columns: Record<string, ColumnInfo>
 	foreignKeys?: ForeignKeyInfo[]
 }

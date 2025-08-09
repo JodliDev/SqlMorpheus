@@ -4,12 +4,18 @@ import TableObj from "../../src/lib/tableInfo/TableObj";
 describe("TableObj", () => {
 	describe("create", () => {
 		it("should create a new TableObj instance", () => {
-			const columns = {id: "number", name: "string"};
+			const columns = {id: 5, name: "a string"};
 			const table = TableObj.create("users", columns) as TableObj<any>;
 			
 			expect(table).toBeInstanceOf(TableObj);
-			expect(table.tableName).toBe('users');
-			expect(table.columns).toEqual(columns);
+			expect(table.tableName).toBe("users");
+			console.log(table.tableStructure)
+			expect(table.tableStructure.columns).toHaveProperty("id");
+			expect(table.tableStructure.columns["id"].inputDefaultValue).toEqual(5);
+			expect(table.tableStructure.columns["id"].inputType).toEqual("number");
+			expect(table.tableStructure.columns).toHaveProperty("name");
+			expect(table.tableStructure.columns["name"].inputDefaultValue).toEqual("a string");
+			expect(table.tableStructure.columns["name"].inputType).toEqual("string");
 		});
 	});
 	
@@ -19,7 +25,7 @@ describe("TableObj", () => {
 			const table = TableObj.create("users", columns)
 				.primaryKey("id");
 			
-			expect((table as TableObj<any>).tableInfo.primaryKey).toBe("id");
+			expect((table as TableObj<any>).tableStructure.primaryKey).toBe("id");
 		});
 	});
 	
@@ -33,7 +39,7 @@ describe("TableObj", () => {
 				.foreignKey("userId", userTable, "id", {onDelete: "CASCADE", onUpdate: "NO ACTION"});
 			
 			
-			expect((postTable as TableObj<any>).tableInfo.foreignKeys).toContainEqual({
+			expect((postTable as TableObj<any>).tableStructure.foreignKeys).toContainEqual({
 				fromTable: "posts",
 				fromColumn: "userId",
 				toTable: "users",
@@ -50,7 +56,7 @@ describe("TableObj", () => {
 			const table = TableObj.create("users", columns)
 				.dataType("id", "number");
 			
-			expect((table as TableObj<any>).tableInfo.dataTypes!["id"]).toBe("number");
+			expect((table as TableObj<any>).tableStructure.columns["id"].type).toBe("number");
 		});
 	});
 	

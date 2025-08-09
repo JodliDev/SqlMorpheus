@@ -70,29 +70,6 @@ describe("SqliteDialect", () => {
 		});
 	});
 	
-	test("getForeignKeys", async() => {
-		mockAccess.runGetStatement.mockResolvedValueOnce([
-			{
-				from: "child_id",
-				table: "parent_table",
-				to: "id",
-				on_update: "CASCADE",
-				on_delete: "SET NULL",
-			},
-		]);
-		const foreignKeys = await mockDialect.getForeignKeys("child_table");
-		expect(foreignKeys).toEqual([
-			{
-				fromTable: "child_table",
-				fromColumn: "child_id",
-				toTable: "parent_table",
-				toColumn: "id",
-				on_update: "CASCADE",
-				on_delete: "SET NULL",
-			},
-		]);
-	});
-	
 	test("getVersion", async() => {
 		mockAccess.runGetStatement.mockResolvedValueOnce([{user_version: 2}]);
 		const version = await mockDialect.getVersion();
@@ -113,18 +90,17 @@ describe("SqliteDialect", () => {
 			databaseAccess.close();
 		});
 		describe("createTable", () => {
-			//TODO add tests for all methods
 			it("should create a table successfully", async() => {
 				const tableName = "users";
 				const entries = [
-					sqlDialect.columnDefinition("id", sqlDialect.types.number, sqlDialect.formatValueToSql(3, "number"), true),
-					sqlDialect.columnDefinition("name", sqlDialect.types.string, sqlDialect.formatValueToSql("test", "string"), false),
-					sqlDialect.columnDefinition("AccountValue", sqlDialect.types.bigint, sqlDialect.formatValueToSql(BigInt(5), "bigint"), false),
-					sqlDialect.columnDefinition("isSmart", sqlDialect.types.boolean, sqlDialect.formatValueToSql(true, "boolean"), false),
-					sqlDialect.columnDefinition("birthday", sqlDialect.types.date, sqlDialect.formatValueToSql(new Date("2025-07-25"), "date"), false),
-					sqlDialect.columnDefinition("wokenUpAt", sqlDialect.types.time, sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time"), false),
-					sqlDialect.columnDefinition("lastHouseFire", sqlDialect.types.dateTime, sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "dateTime"), false),
-					sqlDialect.columnDefinition("royalTitle", sqlDialect.types.string, sqlDialect.types.null, false)
+					sqlDialect.columnDefinition("id", sqlDialect.types.number, true, sqlDialect.formatValueToSql(3, "number")),
+					sqlDialect.columnDefinition("name", sqlDialect.types.string, false, sqlDialect.formatValueToSql("test", "string")),
+					sqlDialect.columnDefinition("accountValue", sqlDialect.types.bigint, false, sqlDialect.formatValueToSql(BigInt(5), "bigint")),
+					sqlDialect.columnDefinition("isSmart", sqlDialect.types.boolean, false, sqlDialect.formatValueToSql(true, "boolean")),
+					sqlDialect.columnDefinition("birthday", sqlDialect.types.date, false, sqlDialect.formatValueToSql(new Date("2025-07-25"), "date")),
+					sqlDialect.columnDefinition("wokenUpAt", sqlDialect.types.time, false, sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time")),
+					sqlDialect.columnDefinition("lastHouseFire", sqlDialect.types.dateTime, false, sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "dateTime")),
+					sqlDialect.columnDefinition("royalTitle", sqlDialect.types.string, false, sqlDialect.types.null)
 				];
 				
 				await databaseAccess.runMultipleWriteStatements(
@@ -136,16 +112,16 @@ describe("SqliteDialect", () => {
 				expect(tables).toEqual(["users"]);
 				
 				const tableInfo = await sqlDialect.getColumnInformation("users");
-				expect(tableInfo).toEqual([
-					{name: "id", type: sqlDialect.types.number, defaultValue: sqlDialect.formatValueToSql(3, "number"), isPrimaryKey: true},
-					{name: "name", type: sqlDialect.types.string, defaultValue: sqlDialect.formatValueToSql("test", "string"), isPrimaryKey: false},
-					{name: "AccountValue", type: sqlDialect.types.bigint, defaultValue: sqlDialect.formatValueToSql(BigInt(5), "bigint"), isPrimaryKey: false},
-					{name: "isSmart", type: sqlDialect.types.boolean, defaultValue: sqlDialect.formatValueToSql(true, "boolean"), isPrimaryKey: false},
-					{name: "birthday", type: sqlDialect.types.date, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25"), "date"), isPrimaryKey: false},
-					{name: "wokenUpAt", type: sqlDialect.types.time, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time"), isPrimaryKey: false},
-					{name: "lastHouseFire", type: sqlDialect.types.dateTime, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time"), isPrimaryKey: false},
-					{name: "royalTitle", type: sqlDialect.types.string, defaultValue: sqlDialect.types.null, isPrimaryKey: false},
-				]);
+				expect(tableInfo).toEqual({
+					id: {name: "id", type: sqlDialect.types.number, defaultValue: sqlDialect.formatValueToSql(3, "number"), isPrimaryKey: true},
+					name: {name: "name", type: sqlDialect.types.string, defaultValue: sqlDialect.formatValueToSql("test", "string"), isPrimaryKey: false},
+					accountValue: {name: "accountValue", type: sqlDialect.types.bigint, defaultValue: sqlDialect.formatValueToSql(BigInt(5), "bigint"), isPrimaryKey: false},
+					isSmart: {name: "isSmart", type: sqlDialect.types.boolean, defaultValue: sqlDialect.formatValueToSql(true, "boolean"), isPrimaryKey: false},
+					birthday: {name: "birthday", type: sqlDialect.types.date, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25"), "date"), isPrimaryKey: false},
+					wokenUpAt: {name: "wokenUpAt", type: sqlDialect.types.time, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time"), isPrimaryKey: false},
+					lastHouseFire: {name: "lastHouseFire", type: sqlDialect.types.dateTime, defaultValue: sqlDialect.formatValueToSql(new Date("2025-07-25 09:30"), "time"), isPrimaryKey: false},
+					royalTitle: {name: "royalTitle", type: sqlDialect.types.string, defaultValue: sqlDialect.types.null, isPrimaryKey: false},
+				});
 			});
 		});
 		
@@ -195,30 +171,30 @@ describe("SqliteDialect", () => {
 				await databaseAccess.runMultipleWriteStatements(addColumnQuery);
 				
 				const tableInfo = await sqlDialect.getColumnInformation("users");
-				expect(tableInfo).toEqual([
-					{name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true},
-					{name: "name", type: "TEXT", defaultValue: null, isPrimaryKey: false},
-					{name: "new", type: "TEXT", defaultValue: null, isPrimaryKey: false},
-				]);
+				expect(tableInfo).toEqual({
+					id: {name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true},
+					name: {name: "name", type: "TEXT", defaultValue: null, isPrimaryKey: false},
+					new: {name: "new", type: "TEXT", defaultValue: null, isPrimaryKey: false},
+				});
 			});
 			it("renameColumn", async() => {
 				const renameColumnQuery = sqlDialect.renameColumn("users", "name", "newName");
 				await databaseAccess.runMultipleWriteStatements(renameColumnQuery);
 				
 				const tableInfo = await sqlDialect.getColumnInformation("users");
-				expect(tableInfo).toEqual([
-					{name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true},
-					{name: "newName", type: "TEXT", defaultValue: null, isPrimaryKey: false}
-				]);
+				expect(tableInfo).toEqual({
+					id: {name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true},
+					newName: {name: "newName", type: "TEXT", defaultValue: null, isPrimaryKey: false}
+				});
 			});
 			it("dropColumn", async() => {
 				const dropColumnQuery = sqlDialect.dropColumn("users", "name");
 				await databaseAccess.runMultipleWriteStatements(dropColumnQuery);
 				
 				const tableInfo = await sqlDialect.getColumnInformation("users");
-				expect(tableInfo).toEqual([
-					{name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true}
-				]);
+				expect(tableInfo).toEqual({
+					id: {name: "id", type: "INTEGER", defaultValue: null, isPrimaryKey: true}
+				});
 			});
 		});
 		
@@ -226,8 +202,8 @@ describe("SqliteDialect", () => {
 			beforeEach(async () => {
 				await databaseAccess.runMultipleWriteStatements(
 					sqlDialect.createTable("test_table", [
-						sqlDialect.columnDefinition("id", sqlDialect.types.number, "0", true),
-						sqlDialect.columnDefinition("name", sqlDialect.types.string, "\"\"", false)
+						sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
+						sqlDialect.columnDefinition("name", sqlDialect.types.string, false, "\"\"")
 					])
 				);
 			});
@@ -274,22 +250,29 @@ describe("SqliteDialect", () => {
 		});
 		
 		describe("foreignKey", () => {
-			it("should create foreign key constraints", async () => {
+			beforeEach(async() => {
 				// Create parent table
 				await databaseAccess.runMultipleWriteStatements(
 					sqlDialect.createTable("parentTable", [
-						sqlDialect.columnDefinition("id", sqlDialect.types.number, "0", true)
+						sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0")
 					])
 				);
 				
 				// Create child table with foreign key
 				const childTableQuery = sqlDialect.createTable("childTable", [
-					sqlDialect.columnDefinition("id", sqlDialect.types.number, "0", true),
-					sqlDialect.columnDefinition("parent_id", sqlDialect.types.number, "0", false),
-					sqlDialect.foreignKey("parent_id", "parentTable", "id", "CASCADE", "CASCADE")
+					sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
+					sqlDialect.columnDefinition("parent_id", sqlDialect.types.number, false, "0"),
+					sqlDialect.foreignKey("parent_id", "parentTable", "id", "SET NULL", "CASCADE")
 				]);
 				await databaseAccess.runMultipleWriteStatements(childTableQuery);
-				
+			});
+			afterEach(async() => {
+				await databaseAccess.runMultipleWriteStatements(
+					sqlDialect.dropTable("parentTable") +
+					sqlDialect.dropTable("childTable")
+				);
+			});
+			it("should create foreign key constraints", async () => {
 				// Insert parent record
 				await databaseAccess.runMultipleWriteStatements(
 					sqlDialect.insert("parentTable", sqlDialect.insertValues(["id"], "VALUES (1)"))
@@ -327,6 +310,26 @@ describe("SqliteDialect", () => {
 					sqlDialect.select("childTable", ["id"])
 				);
 				expect(resultChild).toEqual([]);
+				
+				//cleanup:
+				await databaseAccess.runMultipleWriteStatements(
+					sqlDialect.dropTable("users")
+				);
+			});
+			
+			
+			it("should return the correct foreign key data", async() => {
+				const foreignKeys = await sqlDialect.getForeignKeys("childTable");
+				expect(foreignKeys).toEqual([
+					{
+						fromTable: "childTable",
+						fromColumn: "parent_id",
+						toTable: "parentTable",
+						toColumn: "id",
+						onUpdate: "SET NULL",
+						onDelete: "CASCADE",
+					},
+				]);
 			});
 		});
 		
@@ -335,8 +338,8 @@ describe("SqliteDialect", () => {
 				// Create table
 				await databaseAccess.runMultipleWriteStatements(
 					sqlDialect.createTable("test_table", [
-						sqlDialect.columnDefinition("id", sqlDialect.types.number, "0", true),
-						sqlDialect.columnDefinition("name", sqlDialect.types.string, "\"\"", false)
+						sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
+						sqlDialect.columnDefinition("name", sqlDialect.types.string, false, "\"\"")
 					])
 				);
 			});

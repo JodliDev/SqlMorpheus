@@ -80,8 +80,8 @@ describe("Integration tests", () => {
 		
 		// Modify table structure
 		instructions.version = 2;
-		(users as TableObj<any>).columns.displayName = "";
-		delete (users as TableObj<any>).columns.username;
+		(users as TableObj<any>).tableStructure.columns.displayName = (users as TableObj<any>).tableStructure.columns.username;
+		delete (users as TableObj<any>).tableStructure.columns.username;
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
 			migrations.renameColumn(2, users, "username", "displayName");
@@ -165,7 +165,7 @@ describe("Integration tests", () => {
 			migrations.allowMigration(2, items, "alterForeignKey");
 			migrations.allowMigration(2, items, "recreateTable"); //sqlite cannot alter foreign keys
 		}
-		(items as TableObj<any>).tableInfo.foreignKeys![0].onDelete = "SET NULL";
+		(items as TableObj<any>).tableStructure.foreignKeys![0].onDelete = "SET NULL";
 		
 		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
@@ -260,29 +260,36 @@ describe("Integration tests", () => {
 		
 		// Complex changes: rename columns, add new table, modify foreign keys
 		
-		(departments as TableObj<any>).columns.location = "";
-		(departments as TableObj<any>).columns.departmentName = "";
-		delete (departments as TableObj<any>).columns.name;
-		
-		(employees as TableObj<any>).columns.name = "";
-		delete (employees as TableObj<any>).columns.firstName;
-		delete (employees as TableObj<any>).columns.lastName;
-		(employees as TableObj<any>).columns.supervisorId = 0;
-		delete (employees as TableObj<any>).columns.managerId;
-		
-		(employees as TableObj<any>).tableInfo.foreignKeys![0].onDelete = "SET NULL"; //modified
-		(employees as TableObj<any>).tableInfo.foreignKeys!.pop();
-		
-		const employeesHistory = TableObj.create("employees_history", {
-			id: 0,
-			employeeId: 0,
-			changeDate: "",
-			changeType: ""
-		}).primaryKey("id")
-			.foreignKey("employeeId", employees, "id", {onDelete: "CASCADE"});
+		instructions.tables = [
+			TableObj.create("departments", {
+				id: 0,
+				// name: "",
+				location: "", // added
+				departmentName: "" // renamed
+			}).primaryKey("id"),
+			
+			TableObj.create("employees", {
+				id: 0,
+				name: "",
+				// firstName: "",
+				// lastName: "",
+				supervisorId: 0,
+				departmentId: 0,
+				// managerId: 0
+			}).primaryKey("id")
+				.foreignKey("departmentId", departments, "id", {onDelete: "SET NULL"}), // modified onDelete
+			
+			// added table:
+			TableObj.create("employees_history", {
+				id: 0,
+				employeeId: 0,
+				changeDate: "",
+				changeType: ""
+			}).primaryKey("id")
+				.foreignKey("employeeId", employees, "id", {onDelete: "CASCADE"})
+		];
 		
 		instructions.version = 2;
-		instructions.tables.push(employeesHistory);
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
 			migrations.renameColumn(2, departments, "name", "departmentName");
@@ -297,7 +304,7 @@ describe("Integration tests", () => {
 		expect(tables).toHaveLength(3);
 		
 		const departmentColumns = await runGetStatement("PRAGMA table_info(departments)");
-		expect(departmentColumns).toHaveLength(3); // id, departmentName, location
+		expect(departmentColumns).toHaveLength(2); // id, departmentName, location
 		
 		const employeeColumns = await runGetStatement("PRAGMA table_info(employees)");
 		expect(employeeColumns).toHaveLength(4); // id, fullName, departmentId, supervisorId

@@ -1,7 +1,7 @@
 import {TableClassInterface, Class} from "../../typings/TableClassInterface";
-import {getTableInfo, getTableInfoFromMetadata} from "../TableInfo";
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 import {ForeignKeyActions} from "../../typings/ForeignKeyInfo";
+import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure";
 
 /**
  * Decorator function to define a self-referencing foreign key relationship within a table.
@@ -20,7 +20,7 @@ export default function ForeignKeyToSelf<T extends TableClassInterface>(
 	},
 ) {
 	return (table: Class<T>, context?: any) => {
-		const tableInfo = context?.metadata ? getTableInfoFromMetadata(context.metadata) : getTableInfo(table);
+		const tableInfo = context?.metadata ? getTableStructureFromMetadata(context.metadata) : getTableStructure(table);
 		if(!tableInfo.foreignKeys)
 			tableInfo.foreignKeys = [];
 		

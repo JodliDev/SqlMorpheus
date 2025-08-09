@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
-import {getTableInfo} from "../../../src/lib/tableInfo/TableInfo";
 import {ForeignKeyInfo} from "../../../src/lib/typings/ForeignKeyInfo";
 import ForeignKeyToSelf from "../../../src/lib/tableInfo/decorators/ForeignKeyToSelf";
+import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure";
 
 class TestClass2 {
 	id: number = 5;
@@ -16,7 +16,7 @@ class TestClass {
 
 describe("Foreign Key to Self", () => {
 	it("should save data correctly", () =>  {
-		const info = getTableInfo(TestClass);
+		const info = getTableStructure(TestClass);
 		expect(info.foreignKeys).toHaveLength(1);
 		expect(info.foreignKeys![0]).toEqual({
 			fromTable: "TestClass",
@@ -29,6 +29,6 @@ describe("Foreign Key to Self", () => {
 	});
 	
 	it("should not have data when no decorator exists", () =>  {
-		expect(getTableInfo(TestClass2).foreignKeys).toEqual([]);
+		expect(getTableStructure(TestClass2).foreignKeys).toEqual([]);
 	});
 });

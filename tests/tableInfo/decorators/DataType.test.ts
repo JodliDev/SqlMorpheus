@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import DataType from "../../../src/lib/tableInfo/decorators/DataType";
-import {getTableInfo} from "../../../src/lib/tableInfo/TableInfo";
+import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure";
 
 class TestClass2 {
 	id: number = 5;
@@ -15,12 +15,12 @@ class TestClass {
 
 describe("DataType", () => {
 	it("should save data correctly", () =>  {
-		const info = getTableInfo(TestClass);
-		expect(info.dataTypes).toBeDefined();
-		expect(info.dataTypes).toEqual({var1: "string"});
+		const info = getTableStructure(TestClass);
+		expect(info.columns["var1"]).toBeDefined();
+		expect(info.columns["var1"].inputType).toEqual("string");
 	});
 	
 	it("should not have data when no decorator exists", () =>  {
-		expect(getTableInfo(TestClass2).dataTypes).toBeUndefined();
+		expect(getTableStructure(TestClass2).columns).toEqual({});
 	});
 });
