@@ -74,7 +74,7 @@ export class Migrations {
 	 * @return The name of the table derived from either {@link TableObj} or a class.
 	 */
 	private getTableName(table: TableInput): string {
-		return TableObj.isDbTable(table) ? table.tableName : table.name;
+		return TableObj.isTableObj(table) ? table.tableName : table.name;
 	}
 	
 	

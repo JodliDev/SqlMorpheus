@@ -74,12 +74,12 @@ describe("TableObj", () => {
 	describe("isDbTable", () => {
 		it("should return true for a valid TableObj instance", () => {
 			const table = TableObj.create("users", {});
-			expect(TableObj.isDbTable(table)).toBe(true);
+			expect(TableObj.isTableObj(table)).toBe(true);
 		});
 		
 		it("should return false for an invalid object", () => {
 			const invalidObject = {someKey: "someValue"};
-			expect(TableObj.isDbTable(invalidObject)).toBe(false);
+			expect(TableObj.isTableObj(invalidObject)).toBe(false);
 		});
 	});
 });

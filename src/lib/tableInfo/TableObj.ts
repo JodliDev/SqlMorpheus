@@ -114,7 +114,7 @@ export default class TableObj<T extends DataFormat> {
 		return new TableObj<T>(tableName, columns);
 	}
 	
-	public static isDbTable(obj: unknown): obj is TableObj<any> {
+	public static isTableObj(obj: unknown): obj is TableObj<any> {
 		return !!(obj as TableObj<any>)?.IS_TABLE_OBJ
 	}
 }
