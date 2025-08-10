@@ -1,6 +1,7 @@
 export interface ColumnInfo {
 	name: string
 	type: string
-	defaultValue: string
+	maxLength?: number
+	defaultValue?: string
 	isPrimaryKey: boolean
 }

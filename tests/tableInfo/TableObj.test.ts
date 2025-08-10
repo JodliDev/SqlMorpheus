@@ -50,6 +50,17 @@ describe("TableObj", () => {
 		});
 	});
 	
+	
+	describe("maxLength", () => {
+		it("should define max length for a column", () => {
+			const columns = {id: "number", name: "string"};
+			const table = TableObj.create("users", columns)
+				.maxCharacterLength("id", 6);
+			
+			expect((table as TableObj<any>).tableStructure.columns["id"].maxLength).toBe(6);
+		});
+	});
+	
 	describe("dataType", () => {
 		it("should define a data type for a column", () => {
 			const columns = {id: "number", name: "string"};

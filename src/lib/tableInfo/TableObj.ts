@@ -105,7 +105,12 @@ export default class TableObj<T extends DataFormat> {
 		return this;
 	}
 	
-	public static create<T extends Record<string, unknown>>(tableName: string, columns: T): TableObjBuilder<T, "primaryKey" | "foreignKey" | "dataType"> {
+	public maxCharacterLength(column: keyof T, max: number): TableObjBuilder<T> {
+		this.tableStructure.columns[column.toString()].maxLength = max;
+		return this;
+	}
+	
+	public static create<T extends Record<string, unknown>>(tableName: string, columns: T): NewTableObjBuilder<T> {
 		return new TableObj<T>(tableName, columns);
 	}
 	
