@@ -173,4 +173,32 @@ describe("MigrationManager", () => {
 			manager.generateSqlChanges({...mockDbInstructions, version: 2})
 		).rejects.toThrow(new NotAllowedException([{version: 2, tableName: "TableA", type: "dropTable"}]));
 	});
+	
+	it("should correctly rename a column", async() => {
+		//alter DatabaseInstructions:
+		const tableA = TableObj.create("TableA", {newColumnA: ""});
+		mockDbInstructions.tables = [tableA];
+		mockDbInstructions.preMigration = (migrations) => {
+			migrations.renameColumn(2, tableA, "oldColumnA", "newColumnA");
+		}
+		
+		//alter dialect:
+		mockDialect.getVersion = () => Promise.resolve(1);
+		mockDialect.getTableNames = () => Promise.resolve(["TableA"]);
+		mockDialect.getColumnInformation = () => Promise.resolve({
+			oldColumnA: {
+				name: "oldColumnA",
+				type: mockDialect.types.string,
+				defaultValue: "\"\"",
+				isPrimaryKey: false
+			}
+		});
+		
+		//setup manager
+		const manager = new MigrationManager(mockDialect);
+		
+		//check results:
+		const result = await manager.generateSqlChanges({...mockDbInstructions, version: 2});
+		expect(result?.changes.up).toContain("ALTER TABLE TableA RENAME COLUMN oldColumnA TO newColumnA");
+	});
 });
