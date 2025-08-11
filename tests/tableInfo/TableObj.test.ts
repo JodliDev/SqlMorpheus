@@ -67,7 +67,7 @@ describe("TableObj", () => {
 			const table = TableObj.create("users", columns)
 				.dataType("id", "number");
 			
-			expect((table as TableObj<any>).tableStructure.columns["id"].type).toBe("number");
+			expect((table as TableObj<any>).tableStructure.columns["id"].inputType).toBe("number");
 		});
 	});
 	

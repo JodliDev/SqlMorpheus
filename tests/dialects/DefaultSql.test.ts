@@ -5,8 +5,8 @@ import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
 import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions";
 
 class TestSql extends DefaultSql {
-	public override async getColumnInformation(tableName: string): Promise<ColumnInfo[]> {
-		return [];
+	public override async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
+		return {};
 	}
 	
 	public override async getTableNames(): Promise<string[]> {
@@ -29,17 +29,17 @@ describe("DefaultSql", () => {
 		
 		it("should format date values correctly", () => {
 			const result = mockDialect.formatValueToSql(new Date("2025-07-20"), "date");
-			expect(result).toBe("2025-07-20");
+			expect(result).toBe("\"2025-07-20\"");
 		});
 		
 		it("should format datetime values correctly", () => {
-			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00"), "dateTime");
-			expect(result).toBe("2025-07-20 15:30:00");
+			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00.000Z"), "dateTime");
+			expect(result).toBe("\"2025-07-20 15:30:00\"");
 		});
 		
 		it("should format time values correctly", () => {
-			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00"), "time");
-			expect(result).toBe("15:30:00");
+			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00.000Z"), "time");
+			expect(result).toBe("\"15:30:00\"");
 		});
 		
 		it("should default to string conversion for unknown types", () => {
@@ -70,12 +70,12 @@ describe("DefaultSql", () => {
 	
 	describe("columnDefinition", () => {
 		it("should create a column definition without primary key", () => {
-			const result = mockDialect.columnDefinition("name", "TEXT", "'default'", false);
+			const result = mockDialect.columnDefinition("name", "TEXT", false, "'default'");
 			expect(result).toBe("name TEXT DEFAULT 'default'");
 		});
 		
 		it("should create a column definition with primary key", () => {
-			const result = mockDialect.columnDefinition("id", "INTEGER", "1", true);
+			const result = mockDialect.columnDefinition("id", "INTEGER", true, "1");
 			expect(result).toBe("id INTEGER DEFAULT 1 PRIMARY KEY");
 		});
 	});

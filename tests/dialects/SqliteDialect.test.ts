@@ -34,8 +34,8 @@ describe("SqliteDialect", () => {
 	const mockDialect = new SqliteDialect(mockAccess);
 	
 	it("changeForeignKeysState", () => {
-		expect(mockDialect.changeForeignKeysState(true)).toBe("PRAGMA foreign_keys ON;");
-		expect(mockDialect.changeForeignKeysState(false)).toBe("PRAGMA foreign_keys OFF;");
+		expect(mockDialect.changeForeignKeysState(true)).toBe("PRAGMA foreign_keys = ON;");
+		expect(mockDialect.changeForeignKeysState(false)).toBe("PRAGMA foreign_keys = OFF;");
 	});
 	
 	describe("formatValueToSql", () => {

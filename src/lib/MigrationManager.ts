@@ -434,13 +434,13 @@ export class MigrationManager {
 				continue;
 			}
 			
-			const renamedColumns = this.migrations.getMigrationData()[tableName].renamedColumns;
+			const renamedColumns = this.migrations.getMigrationData()[tableName]?.renamedColumns;
 			
 			//Search for added or changed columns:
 			for(const key in newColumnList) {
 				const newColumn = newColumnList[key];
 				const oldColumn = oldColumnNewNameIndex[newColumn.name];
-				const willBeRenamed = renamedColumns.find(entry => entry.newName);
+				const willBeRenamed = renamedColumns?.find(entry => entry.newName);
 				
 				if(willBeRenamed)
 					continue;

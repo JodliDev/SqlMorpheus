@@ -80,6 +80,9 @@ export default class TableObj<T extends DataFormat> {
 	}
 	
 	public primaryKey(key: keyof T): TableObjBuilder<T>  {
+		if(this.tableStructure.primaryKey) {
+			this.tableStructure.columns[this.tableStructure.primaryKey].isPrimaryKey = false;
+		}
 		this.tableStructure.primaryKey = key.toString();
 		this.tableStructure.columns[key.toString()].isPrimaryKey = true;
 		return this;
