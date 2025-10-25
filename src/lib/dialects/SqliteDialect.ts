@@ -8,6 +8,7 @@ import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
  */
 export default class SqliteDialect extends DefaultSql {
 	public types = {
+		text: "TEXT",
 		string: "TEXT",
 		number: "INTEGER",
 		bigint: "INTEGER",

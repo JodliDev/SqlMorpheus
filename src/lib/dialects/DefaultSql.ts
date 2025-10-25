@@ -18,6 +18,7 @@ export default abstract class DefaultSql {
 	public canInspectPrimaryKey: boolean = false;
 	
 	public types = {
+		text: "TEXT",
 		string: "TEXT",
 		number: "INTEGER",
 		bigint: "BIGINT",
@@ -45,6 +46,7 @@ export default abstract class DefaultSql {
 		}
 		
 		switch(type) {
+			case "text":
 			case "string":
 				return `"${value}"`;
 			case "time":
@@ -58,7 +60,7 @@ export default abstract class DefaultSql {
 		}
 	}
 	
-	public getSqlType(dataType: DataTypeOptions, _?: ColumnInfo) {
+	public getSqlType(dataType: DataTypeOptions, _?: ColumnInfo): string {
 		return this.types[dataType];
 	}
 	

@@ -11,6 +11,7 @@ export default class MySqlDialect extends DefaultSql {
 	
 	
 	public types = {
+		text: "TEXT",
 		string: "VARCHAR",
 		number: "INT",
 		bigint: "BIGINT",
