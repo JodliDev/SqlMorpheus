@@ -216,7 +216,7 @@ export class MigrationManager {
 		const queryLines = [];
 		for(const key in columns) {
 			const columnInfo = columns[key];
-			queryLines.push(this.dialect.columnDefinition(columnInfo.name, columnInfo.type, columnInfo.isPrimaryKey, columnInfo.defaultValue))
+			queryLines.push(this.dialect.columnDefinition(columnInfo.name, columnInfo.sqlType, columnInfo.isPrimaryKey, columnInfo.defaultValue))
 		}
 		
 		//foreign keys:
@@ -446,10 +446,10 @@ export class MigrationManager {
 					continue;
 				
 				if(oldColumn == undefined) {
-					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.type, newColumn.isPrimaryKey, newColumn.defaultValue)) + "\n";
+					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.sqlType, newColumn.isPrimaryKey, newColumn.defaultValue)) + "\n";
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
-				else if(newColumn.type != oldColumn.type || newColumn.defaultValue != oldColumn.defaultValue) {
+				else if(newColumn.sqlType != oldColumn.sqlType || newColumn.defaultValue != oldColumn.defaultValue) {
 					this.migrations.internalRecreate(newTableDefinition.table, "Table structure was changed");
 				}
 			}
@@ -462,7 +462,7 @@ export class MigrationManager {
 				if(newColumn == undefined) {
 					this.migrations.compareWithAllowedMigration(tableName, "dropColumn");
 					changes.up += this.dialect.dropColumn(tableName, oldColumn.name) + "\n";
-					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.type, oldColumn.isPrimaryKey, oldColumn.defaultValue)) + "\n";
+					changes.down += this.dialect.createColumn(tableName, this.dialect.columnDefinition(oldColumn.name, oldColumn.sqlType, oldColumn.isPrimaryKey, oldColumn.defaultValue)) + "\n";
 				}
 			}
 		}

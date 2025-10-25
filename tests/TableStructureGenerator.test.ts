@@ -12,14 +12,14 @@ import TableObj from "../src/lib/tableInfo/TableObj";
 describe("TableStructureGenerator", () => {
 	class DefaultDialect extends DefaultSql {
 		public types = {
-			string: "TEXT",
+			string: "VARCHAR",
+			text: "TEXT",
 			number: "INTEGER",
 			bigint: "BIGINT",
 			boolean: "BOOLEAN",
 			date: "DATE",
 			time: "TIME",
 			dateTime: "DATETIME",
-			null: "NULL",
 		};
 		
 		getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
@@ -42,6 +42,8 @@ describe("TableStructureGenerator", () => {
 		class HouseClass {
 			houseId: bigint = BigInt(3);
 			address: string = "address";
+			@DataType("text")
+			description: string = "";
 			stories: number = 0;
 			@DataType("string")
 			ownerName: string | null = null;
@@ -81,6 +83,7 @@ describe("TableStructureGenerator", () => {
 		const House = TableObj.create("House", {
 			houseId: BigInt(3),
 			address: "address",
+			description: "",
 			stories: 0,
 			ownerName: null,
 			builtAt: new Date(1712111880000),
@@ -88,6 +91,7 @@ describe("TableStructureGenerator", () => {
 			hasInternet: true,
 		})
 			.primaryKey("houseId")
+			.dataType("description", "text")
 			.dataType("ownerName", "string")
 			.dataType("builtAt", "dateTime");
 		
@@ -126,13 +130,14 @@ describe("TableStructureGenerator", () => {
 		expect(tableHouse.primaryKey).toBe("houseId");
 		expect(tableHouse.foreignKeys).toMatchObject([]);
 		expect(tableHouse.columns).toMatchObject({
-			houseId: {name: "houseId", type: "BIGINT", defaultValue: "3", isPrimaryKey: true},
-			address: {name: "address", type: "TEXT", defaultValue: '"address"', isPrimaryKey: false},
-			stories: {name: "stories", type: "INTEGER", defaultValue: "0", isPrimaryKey: false},
-			ownerName: {name: "ownerName", type: "TEXT", defaultValue: "NULL", isPrimaryKey: false},
-			builtAt: {name: "builtAt", type: "DATETIME", defaultValue: "\"2024-04-03 02:38:00\"", isPrimaryKey: false},
-			inhabitants: {name: "inhabitants", type: "BIGINT", defaultValue: "0", isPrimaryKey: false},
-			hasInternet: {name: "hasInternet", type: "BOOLEAN", defaultValue: "true", isPrimaryKey: false},
+			houseId: {name: "houseId", sqlType: "BIGINT", defaultValue: "3", isPrimaryKey: true},
+			address: {name: "address", sqlType: "VARCHAR", defaultValue: '"address"', isPrimaryKey: false},
+			description: {name: "description", sqlType: "TEXT", defaultValue: '""', isPrimaryKey: false},
+			stories: {name: "stories", sqlType: "INTEGER", defaultValue: "0", isPrimaryKey: false},
+			ownerName: {name: "ownerName", sqlType: "VARCHAR", defaultValue: "NULL", isPrimaryKey: false},
+			builtAt: {name: "builtAt", sqlType: "DATETIME", defaultValue: "\"2024-04-03 02:38:00\"", isPrimaryKey: false},
+			inhabitants: {name: "inhabitants", sqlType: "BIGINT", defaultValue: "0", isPrimaryKey: false},
+			hasInternet: {name: "hasInternet", sqlType: "BOOLEAN", defaultValue: "true", isPrimaryKey: false},
 		});
 		
 		const tableCar: TableStructure = tables["Car"];
@@ -154,13 +159,13 @@ describe("TableStructureGenerator", () => {
 			}
 		]);
 		expect(tableCar.columns).toMatchObject({
-			carId: {name: "carId", type: "BIGINT", defaultValue: "5", isPrimaryKey: true},
-			belongsTo: {name: "belongsTo", type: "BIGINT", defaultValue: "1", isPrimaryKey: false},
-			isSimilarTo: {name: "isSimilarTo", type: "BIGINT", defaultValue: "9", isPrimaryKey: false},
-			electric: {name: "electric", type: "BOOLEAN", defaultValue: "false", isPrimaryKey: false},
-			brand: {name: "brand", type: "TEXT", defaultValue: "\"\"", isPrimaryKey: false},
-			km: {name: "km", type: "INTEGER", defaultValue: '10', isPrimaryKey: false},
-			lastUsed: {name: "lastUsed", type: "DATE", defaultValue: "\"1989-02-01\"", isPrimaryKey: false},
+			carId: {name: "carId", sqlType: "BIGINT", defaultValue: "5", isPrimaryKey: true},
+			belongsTo: {name: "belongsTo", sqlType: "BIGINT", defaultValue: "1", isPrimaryKey: false},
+			isSimilarTo: {name: "isSimilarTo", sqlType: "BIGINT", defaultValue: "9", isPrimaryKey: false},
+			electric: {name: "electric", sqlType: "BOOLEAN", defaultValue: "false", isPrimaryKey: false},
+			brand: {name: "brand", sqlType: "VARCHAR", defaultValue: "\"\"", isPrimaryKey: false},
+			km: {name: "km", sqlType: "INTEGER", defaultValue: '10', isPrimaryKey: false},
+			lastUsed: {name: "lastUsed", sqlType: "DATE", defaultValue: "\"1989-02-01\"", isPrimaryKey: false},
 		});
 	}
 	

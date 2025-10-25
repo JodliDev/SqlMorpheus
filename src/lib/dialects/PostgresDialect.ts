@@ -28,7 +28,7 @@ export default class PostgresDialect extends DefaultSql {
 		for(const entry of data as Record<string, string>[]) {
 			output[entry["name"]] = {
 				name: entry["column_name"],
-				type: entry["data_type"],
+				sqlType: entry["data_type"],
 				maxLength: 0,
 				defaultValue: entry["column_default"],
 				isPrimaryKey: false,

@@ -48,7 +48,7 @@ export default class MsSqlDialect extends DefaultSql {
 		for(const entry of data as Record<string, string>[]) {
 			output[entry["name"]] = {
 				name: entry["name"],
-				type: entry["DATA_TYPE"],
+				sqlType: entry["DATA_TYPE"],
 				maxLength: 0,
 				defaultValue: entry["COLUMN_DEFAULT"],
 				isPrimaryKey: entry["pk"] == "1",

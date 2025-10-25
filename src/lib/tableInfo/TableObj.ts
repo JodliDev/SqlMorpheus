@@ -31,7 +31,7 @@ export default class TableObj<T extends DataFormat> {
 	public static getEmptyColumnEntry(key: string): InputColumnInfo {
 		return {
 			name: key,
-			type: "",
+			sqlType: "",
 			defaultValue: "",
 			isPrimaryKey: false
 		}

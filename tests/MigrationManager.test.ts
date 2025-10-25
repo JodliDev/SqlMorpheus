@@ -131,7 +131,7 @@ describe("MigrationManager", () => {
 		mockDialect.getColumnInformation = () => Promise.resolve({
 			oldColumnA: {
 				name: "oldColumnA",
-				type: mockDialect.types.string,
+				sqlType: mockDialect.getSqlType("string"),
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
@@ -159,7 +159,7 @@ describe("MigrationManager", () => {
 		mockDialect.getColumnInformation = () => Promise.resolve({
 			oldColumnA: {
 				name: "oldColumnA",
-				type: mockDialect.types.string,
+				sqlType: mockDialect.getSqlType("string"),
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}
@@ -188,7 +188,7 @@ describe("MigrationManager", () => {
 		mockDialect.getColumnInformation = () => Promise.resolve({
 			oldColumnA: {
 				name: "oldColumnA",
-				type: mockDialect.types.string,
+				sqlType: mockDialect.getSqlType("string"),
 				defaultValue: "\"\"",
 				isPrimaryKey: false
 			}

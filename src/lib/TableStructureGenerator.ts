@@ -42,8 +42,8 @@ export default class TableStructureGenerator {
 			//get sql column data
 			for(const key in structure.columns) {
 				const entry = structure.columns[key];
-				entry.defaultValue = entry.inputDefaultValue === null ? this.dialect.types.null : this.dialect.formatValueToSql(entry.inputDefaultValue, entry.inputType!);
-				entry.type = this.dialect.getSqlType(entry.inputType!, entry);
+				entry.defaultValue = entry.inputDefaultValue === null ? this.dialect.nullType : this.dialect.formatValueToSql(entry.inputDefaultValue, entry.inputType!);
+				entry.sqlType = this.dialect.getSqlType(entry.inputType!, entry);
 			}
 		}
 		

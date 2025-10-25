@@ -16,7 +16,6 @@ export default class SqliteDialect extends DefaultSql {
 		date: "INTEGER",
 		time: "INTEGER",
 		dateTime: "INTEGER",
-		null: "NULL",
 	};
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
@@ -39,7 +38,7 @@ export default class SqliteDialect extends DefaultSql {
 		for(const entry of data) {
 			output[entry["name"]] = {
 				name: entry["name"],
-				type: entry["type"],
+				sqlType: entry["type"],
 				defaultValue: entry["dflt_value"],
 				isPrimaryKey: entry["pk"] == "1",
 			}

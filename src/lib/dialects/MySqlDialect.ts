@@ -19,7 +19,6 @@ export default class MySqlDialect extends DefaultSql {
 		date: "DATE",
 		time: "TIME",
 		dateTime: "DATETIME",
-		null: "NULL",
 	};
 	
 	public getSqlType(dataType: DataTypeOptions, columnInfo?: ColumnInfo) {

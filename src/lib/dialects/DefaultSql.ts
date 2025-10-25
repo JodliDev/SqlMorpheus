@@ -17,7 +17,7 @@ export default abstract class DefaultSql {
 	public canInspectForeignKeys: boolean = false;
 	public canInspectPrimaryKey: boolean = false;
 	
-	public types = {
+	protected types = {
 		text: "TEXT",
 		string: "TEXT",
 		number: "INTEGER",
@@ -26,8 +26,8 @@ export default abstract class DefaultSql {
 		date: "DATE",
 		time: "TIME",
 		dateTime: "DATETIME",
-		null: "NULL",
 	};
+	public readonly nullType: string = "NULL";
 	
 	constructor(db: DatabaseAccess) {
 		this.db = db;
