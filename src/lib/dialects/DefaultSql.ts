@@ -3,8 +3,10 @@ import {DatabaseAccess} from "../typings/DatabaseAccess";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 import {TableStructure} from "../typings/TableStructure";
+import {SqlChanges} from "../typings/SqlChanges";
+import escapeString from "escape-sql-string";
 
-const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
+export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
 
 /**
  * Provides syntax for SQL queries. Specified dialects extend from this class.
@@ -231,13 +233,18 @@ export default abstract class DefaultSql {
 	 * @param tableName - The name of the database table to select data from.
 	 * @param select - An array of column names to include in the SELECT clause.
 	 * @param where - An optional condition.
+	 * @param orderBy - Optional. the column to sort by
 	 * @return The SQL statement as a string.
 	 */
-	public select(tableName: string, select: string[], where?: string): string {
+	public select(tableName: string, select: string[], where?: string, orderBy?: string): string {
 		let query = `SELECT ${select.join(",")} FROM ${tableName}`
 		
-		if(where)
+		if(where) {
 			query += ` WHERE ${where}`
+		}
+		if(orderBy) {
+			query += ` ORDER BY ${orderBy}`
+		}
 		
 		return `${query};`
 	}
@@ -273,7 +280,10 @@ export default abstract class DefaultSql {
 	 */
 	protected migrationTableQuery(): string {
 		return this.createTable(MIGRATION_DATA_TABLE_NAME, [
-			this.columnDefinition("version", this.types.number, false, "0")
+			this.columnDefinition("fromVersion", this.getSqlType("number"), false, "0"),
+			this.columnDefinition("toVersion", this.getSqlType("number"), true, "0"),
+			this.columnDefinition("upChanges", this.getSqlType("text"), false),
+			this.columnDefinition("downChanges", this.getSqlType("text"), false)
 		]);
 	}
 	
@@ -319,28 +329,57 @@ export default abstract class DefaultSql {
 	 * @return A promise that resolves to the current version number. Returns 0 if no version is found.
 	 */
 	public async getVersion(): Promise<number> {
-		//TODO: untested
 		await this.createMigrationTableIfNeeded();
-		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["version"]);
-		const data = await this.db.runGetStatement(query) as {version: number}[];
-		return data.length ? data[0].version : 0;
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], undefined, "toVersion DESC");
+		const data = await this.db.runGetStatement(query) as {toVersion: number}[];
+		return data.length ? data[0].toVersion : 0;
 	}
 	
 	/**
 	 * Updates the migration version in the database. If the version entry does not exist, it inserts a new one;
 	 * if it exists, it updates the version to the specified value.
 	 *
-	 * @param newVersion - The new migration version to set in the database.
+	 * @param toVersion - The new migration version to set in the database.
 	 * @return A promise that resolves when the operation is complete.
 	 */
-	public async setVersion(newVersion: number): Promise<void> {
-		//TODO: untested
-		const query = `${this.migrationTableQuery()};
-INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (version) VALUES ${newVersion} WHERE NOT EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME})
-UNION ALL
-UPDATE ${MIGRATION_DATA_TABLE_NAME} SET version = ${newVersion} WHERE EXISTS (SELECT 1 FROM ${MIGRATION_DATA_TABLE_NAME});
-`;
-		await this.db.runMultipleWriteStatements(query);
+	public async rollbackHistory(toVersion: number): Promise<void> {
+		const query = `${this.migrationTableQuery()}; DELETE FROM ${MIGRATION_DATA_TABLE_NAME} WHERE toVersion > ${toVersion};`;
 		
+		await this.db.runMultipleWriteStatements(query);
+	}
+	
+	public async getChanges(version: number): Promise<(SqlChanges & {fromVersion: number}) | null> {
+		await this.createMigrationTableIfNeeded();
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["fromVersion", "upChanges", "downChanges"], `toVersion = ${version}`);
+		const data = await this.db.runGetStatement(query) as {upChanges: string, downChanges: string, fromVersion: number}[];
+		
+		return data ? {up: data[0].upChanges, down: data[0].downChanges, fromVersion: data[0].fromVersion} : null;
+	}
+	
+	public async hasChanges(version: number) {
+		await this.createMigrationTableIfNeeded();
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], `toVersion = ${version}`);
+		const data = await this.db.runGetStatement(query) as {toVersion: number}[];
+		
+		return !!data.length;
+	}
+	
+	/**
+	 * Saves the change history to the SQLMorpheus table in the database
+	 * Since we save SQL queries in the database, we need to make sure that they are properly escaped.
+	 * @param fromVersion
+	 * @param toVersion
+	 * @param changes
+	 */
+	public async setChanges(fromVersion: number, toVersion: number, changes: SqlChanges): Promise<void> {
+		const downChanges = escapeString(changes.down);
+		const upChanges = escapeString(changes.up);
+		
+		const query = `${this.migrationTableQuery()} ${await this.hasChanges(toVersion)
+			? `UPDATE ${MIGRATION_DATA_TABLE_NAME} SET fromVersion = '${fromVersion}', upChanges = ${upChanges}, downChanges = ${downChanges} WHERE toVersion = '${toVersion}';`
+			: `INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (fromVersion, toVersion, upChanges, downChanges) VALUES ('${fromVersion}', '${toVersion}', ${upChanges}, ${downChanges})`
+		}`;
+		
+		await this.db.runMultipleWriteStatements(query);
 	}
 }

@@ -76,11 +76,6 @@ describe("SqliteDialect", () => {
 		expect(version).toBe(2);
 	});
 	
-	test("setVersion", async() => {
-		await mockDialect.setVersion(3);
-		expect(mockAccess.runMultipleWriteStatements).toHaveBeenCalledWith("PRAGMA user_version = 3;");
-	});
-	
 	
 	describe("Integration Tests", () => {
 		const databaseAccess = new SqliteDatabaseAccess();

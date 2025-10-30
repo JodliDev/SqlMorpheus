@@ -1,7 +1,6 @@
 import {MigrationManager} from "./lib/MigrationManager";
 import {DatabaseAccess} from "./lib/typings/DatabaseAccess";
 import DatabaseInstructions from "./lib/typings/DatabaseInstructions";
-import MigrationHistoryManager from "./lib/MigrationHistoryManager";
 import {Logger} from "./lib/Logger";
 import TableClass from "./lib/tableInfo/decorators/TableClass";
 import TableObj from "./lib/tableInfo/TableObj";
@@ -64,21 +63,36 @@ export async function runMigrationWithoutHistory(db: DatabaseAccess, dbInstructi
 	}
 }
 
-export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstructions, toVersion: number) {
+export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstructions, toVersion: number): Promise<number> {
 	Logger.setMode(dbInstructions.loggerMode);
 	const dialect = getDialect(db, dbInstructions);
 	const fromVersion = await dialect.getVersion();
-	const historyManager = new MigrationHistoryManager(dbInstructions.configPath);
 	
 	await db.createBackup?.(`from_${fromVersion}_to_${dbInstructions.version}`);
 	Logger.log(`Rolling back from ${fromVersion} to ${toVersion}`);
-	for(let i= fromVersion - 1; i >= toVersion; --i) {
-		const upChanges = historyManager.getDownMigration(i);
-		Logger.debug(upChanges);
-		await db.runMultipleWriteStatements(upChanges);
-		dbInstructions.version = i;
+	let version = fromVersion;
+	while(version > toVersion) {
+		const changes = await dialect.getChanges(version);
+		if(!changes) {
+			throw new Error(`No changes found for version ${version}`);
+		}
+		else if(changes.fromVersion == version) {
+			throw new Error(`Saved changes do not change the database version (${version})`);
+		}
+		Logger.debug(changes.down);
+		
+		await db.runMultipleWriteStatements(changes.down);
+		dbInstructions.version = changes.fromVersion;
+		
+		version = changes.fromVersion;
 	}
-	await dialect.setVersion(toVersion);
+	
+	if(version < toVersion) {
+		Logger.warn(`There was no entry for version ${toVersion}. Rolled back to version ${version}`);
+	}
+	await dialect.rollbackHistory(version);
+	
+	return version;
 }
 
 export {

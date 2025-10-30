@@ -301,7 +301,7 @@ describe("Integration tests", () => {
 		
 		// Verify the changes
 		const tables = await runGetStatement("SELECT name FROM sqlite_master WHERE type='table'");
-		expect(tables).toHaveLength(3);
+		expect(tables).toHaveLength(4); //3 + 1 for the history table
 		
 		const departmentColumns = await runGetStatement("PRAGMA table_info(departments)");
 		expect(departmentColumns).toHaveLength(2); // id, departmentName, location

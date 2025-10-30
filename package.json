@@ -34,6 +34,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "escape-sql-string": "^1.2.2",
     "polyfill-symbol-metadata": "^0.0.2"
   }
 }

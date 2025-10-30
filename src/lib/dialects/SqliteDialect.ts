@@ -2,6 +2,7 @@ import DefaultSql from "./DefaultSql";
 import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
+import {SqlChanges} from "../typings/SqlChanges";
 
 /**
  * SQLite-specific syntax for SQL queries
@@ -39,7 +40,7 @@ export default class SqliteDialect extends DefaultSql {
 			output[entry["name"]] = {
 				name: entry["name"],
 				sqlType: entry["type"],
-				defaultValue: entry["dflt_value"],
+				defaultValue: entry["dflt_value"] ?? this.nullType,
 				isPrimaryKey: entry["pk"] == "1",
 			}
 		}
@@ -76,12 +77,18 @@ export default class SqliteDialect extends DefaultSql {
 		});
 	}
 	
+	public async setChanges(fromVersion: number, toVersion: number, changes: SqlChanges): Promise<void> {
+		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${toVersion};`);
+		await super.setChanges(fromVersion, toVersion, changes);
+	}
+	
 	public async getVersion(): Promise<number> {
 		const output = await this.db.runGetStatement(`PRAGMA user_version;`) as [{user_version: number}];
 		
 		return output[0].user_version as number;
 	}
-	public async setVersion(newVersion: number): Promise<void> {
-		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${newVersion};`)
+	public async rollbackHistory(toVersion: number): Promise<void> {
+		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${toVersion};`);
+		await super.rollbackHistory(toVersion);
 	}
 }

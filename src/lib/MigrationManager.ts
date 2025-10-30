@@ -2,7 +2,7 @@ import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {ColumnInfo} from "./typings/ColumnInfo";
 import TableStructureGenerator from "./TableStructureGenerator";
 import {Migrations} from "./Migrations";
-import DefaultSql from "./dialects/DefaultSql";
+import DefaultSql, {MIGRATION_DATA_TABLE_NAME} from "./dialects/DefaultSql";
 import {SqlChanges} from "./typings/SqlChanges";
 import {ForeignKeyInfo} from "./typings/ForeignKeyInfo";
 import {Logger} from "./Logger";
@@ -94,7 +94,7 @@ export class MigrationManager {
 		else {
 			Logger.log(`Creating migration SQL from version ${fromVersion} to ${toVersion}`);
 			
-			this.existingTables = (await this.dialect.getTableNames()).map(oldTableName => this.migrations.getNewestTableName(oldTableName));
+			this.existingTables = (await this.dialect.getTableNames()).filter(oldTableName => oldTableName != MIGRATION_DATA_TABLE_NAME).map(oldTableName => this.migrations.getNewestTableName(oldTableName));
 			
 			[
 				this.renameTables(),
