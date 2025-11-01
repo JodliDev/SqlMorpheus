@@ -4,7 +4,7 @@ import {test, describe, expect, beforeEach} from "vitest";
 import BetterSqlite3 from "better-sqlite3";
 import * as fs from "node:fs";
 import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
-import {prepareAndRunMigration, PublicMigrations, SqlChanges} from "../src";
+import {runMigration, PublicMigrations, SqlChanges} from "../src";
 import TableObj from "../src/lib/tableInfo/TableObj";
 
 describe("Integration tests", () => {
@@ -63,7 +63,7 @@ describe("Integration tests", () => {
 			preMigration(_: PublicMigrations): SqlChanges | void {}
 		} satisfies DatabaseInstructions;
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Insert test data
 		await runMultipleWriteStatements(`
@@ -87,7 +87,7 @@ describe("Integration tests", () => {
 			migrations.renameColumn(2, users, "username", "displayName");
 		};
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		//Check for changed structure:
 		expect(await runGetStatement("SELECT * FROM users")).toEqual([
@@ -118,13 +118,13 @@ describe("Integration tests", () => {
 			}
 		} satisfies DatabaseInstructions;
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Change primary key to 'sku'
 		instructions.version = 2;
 		(products as TableObj<any>).primaryKey("sku");
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Verify the new structure
 		const tableInfo = await runGetStatement("PRAGMA table_info(products)");
@@ -157,7 +157,7 @@ describe("Integration tests", () => {
 			preMigration(_: PublicMigrations): SqlChanges | void {}
 		} satisfies DatabaseInstructions;
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Modify foreign key constraint
 		instructions.version = 2;
@@ -167,7 +167,7 @@ describe("Integration tests", () => {
 		}
 		(items as TableObj<any>).tableStructure.foreignKeys![0].onDelete = "SET NULL";
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		const foreignKeys = await runGetStatement("PRAGMA foreign_key_list(items)") as any[];
 		expect(foreignKeys[0].on_delete).toBe("SET NULL");
@@ -197,7 +197,7 @@ describe("Integration tests", () => {
 			throwIfNotAllowed: true
 		};
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Insert test data
 		await runMultipleWriteStatements(`
@@ -214,7 +214,7 @@ describe("Integration tests", () => {
 			migrations.renameTable(2, "old_tasks", tasks);
 		};
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		const result = await runGetStatement("SELECT * FROM tasks");
 		expect(result).toEqual([
@@ -255,7 +255,7 @@ describe("Integration tests", () => {
 			}
 		};
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		
 		// Complex changes: rename columns, add new table, modify foreign keys
@@ -297,7 +297,7 @@ describe("Integration tests", () => {
 			migrations.allowMigration(2, employees, "removeForeignKey");
 		};
 		
-		await prepareAndRunMigration({runGetStatement, runMultipleWriteStatements}, instructions);
+		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
 		
 		// Verify the changes
 		const tables = await runGetStatement("SELECT name FROM sqlite_master WHERE type='table'");
