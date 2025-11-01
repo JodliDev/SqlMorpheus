@@ -112,10 +112,7 @@ describe("Integration tests", () => {
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
-			alwaysAllowedMigrations: {
-				alterPrimaryKey: true,
-				recreateTable: true
-			}
+			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable"]
 		} satisfies DatabaseInstructions;
 		
 		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -162,7 +159,7 @@ describe("Integration tests", () => {
 		// Modify foreign key constraint
 		instructions.version = 2;
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.allowMigration(2, items, "alterForeignKey");
+			migrations.allowMigration(2, items, "alterForeignKey", "categoryId");
 			migrations.allowMigration(2, items, "recreateTable"); //sqlite cannot alter foreign keys
 		}
 		(items as TableObj<any>).tableStructure.foreignKeys![0].onDelete = "SET NULL";
@@ -248,11 +245,7 @@ describe("Integration tests", () => {
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
-			alwaysAllowedMigrations: {
-				alterPrimaryKey: true,
-				recreateTable: true,
-				alterForeignKey: true
-			}
+			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable", "alterForeignKey"]
 		};
 		
 		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);
@@ -294,7 +287,7 @@ describe("Integration tests", () => {
 		instructions.preMigration = (migrations: PublicMigrations) => {
 			migrations.renameColumn(2, departments, "name", "departmentName");
 			migrations.renameColumn(2, employees, "managerId", "supervisorId");
-			migrations.allowMigration(2, employees, "removeForeignKey");
+			migrations.allowMigration(2, employees, "removeForeignKey", "managerId");
 		};
 		
 		await runMigration({runGetStatement, runMultipleWriteStatements}, instructions);

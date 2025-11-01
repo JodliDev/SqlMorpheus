@@ -1,13 +1,15 @@
-export interface AllowedEntry {
-	allowed: boolean;
-	used: boolean;
+export const ALLOWED = "allowed";
+export const USED = "allowedAndUsed";
+type AllowedMigrationState = typeof ALLOWED | typeof USED;
+
+export interface AllowedMigrations {
+	recreateTable?: Record<string, AllowedMigrationState>;
+	dropTable?: Record<string, AllowedMigrationState>;
+	dropColumn?: Record<string, AllowedMigrationState>;
+	alterPrimaryKey?: Record<string, AllowedMigrationState>;
+	removeForeignKey?: Record<string, AllowedMigrationState>;
+	alterForeignKey?: Record<string, AllowedMigrationState>;
+	continueWithoutRollback?: Record<string, AllowedMigrationState>;
 }
-export default interface AllowedMigrations {
-	recreateTable?: boolean;
-	dropTable?: boolean;
-	dropColumn?: boolean;
-	alterPrimaryKey?: boolean;
-	removeForeignKey?: boolean;
-	alterForeignKey?: boolean;
-	continueWithoutRollback?: boolean;
-}
+
+export const NO_COLUMN = "noColumn";

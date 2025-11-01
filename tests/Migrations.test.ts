@@ -2,6 +2,7 @@
 import {beforeEach, describe, expect, it} from "vitest";
 import {Migrations} from "../src/lib/Migrations";
 import {DatabaseInstructions} from "../src";
+import {ALLOWED, NO_COLUMN, USED} from "../src/lib/typings/AllowedMigrations";
 
 describe("Migrations", () => {
 	let migrations: Migrations;
@@ -10,7 +11,7 @@ describe("Migrations", () => {
 	beforeEach(() => {
 		dbInstructions = {
 			version: 5,
-			alwaysAllowedMigrations: {},
+			alwaysAllowedMigrations: [],
 			throwIfNotAllowed: true,
 			dialect: "Sqlite",
 			tables: [],
@@ -66,7 +67,6 @@ describe("Migrations", () => {
 					tableRenaming: {oldName: "testTable", newName: "testTable"},
 					renamedColumns: [],
 					allowedMigrations: {},
-					usedMigrations: {},
 					recreate: false,
 				},
 			};
@@ -80,8 +80,7 @@ describe("Migrations", () => {
 		it("should return an error if there are unused allowed migrations", () => {
 			migrations["migrationData"] = {
 				testTable: {
-					allowedMigrations: {dropTable: true},
-					usedMigrations: {},
+					allowedMigrations: {dropTable: {[NO_COLUMN] : ALLOWED}},
 					renamedColumns: [],
 					recreate: false,
 				},
@@ -90,15 +89,44 @@ describe("Migrations", () => {
 			const result = migrations.verifyAllowedMigrations();
 			expect(result).toEqual(new Error("Migration \"dropTable\" for testTable was allowed but not needed.\n"));
 		});
+		
+		it("should return an error if there are unused columns in allowed migrations", () => {
+			migrations["migrationData"] = {
+				testTable: {
+					allowedMigrations: {dropColumn: {"test1" : USED, "test2" : ALLOWED}},
+					renamedColumns: [],
+					recreate: false,
+				},
+			};
+			
+			const result = migrations.verifyAllowedMigrations();
+			expect(result).toEqual(new Error("Migration \"dropColumn\" for testTable.test2 was allowed but not needed.\n"));
+		});
+		
+		it("should not return an error if migrations were used", () => {
+			migrations["migrationData"] = {
+				testTable: {
+					allowedMigrations: {
+						dropColumn: {"test1" : USED, "test2" : USED},
+						dropTable: {[NO_COLUMN] : USED}
+					},
+					renamedColumns: [],
+					recreate: false,
+				},
+			};
+			
+			const result = migrations.verifyAllowedMigrations();
+			expect(result).toEqual(void 0);
+		});
 	});
 	
 	describe("compareWithAllowedMigration", () => {
 		it("should add migration to notAllowedChanges if not allowed", () => {
 			migrations["toVersion"] = 5;
-			migrations.compareWithAllowedMigration("testTable", "alterPrimaryKey");
+			migrations.compareWithAllowedMigration("testTable", "dropColumn", "columnName");
 			
 			expect(migrations["notAllowedChanges"]).toEqual([
-				{version: 5, tableName: "testTable", type: "alterPrimaryKey"},
+				{version: 5, tableName: "testTable", column: "columnName", type: "dropColumn"},
 			]);
 		});
 	});

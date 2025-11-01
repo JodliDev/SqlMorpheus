@@ -1,12 +1,17 @@
-import AllowedMigrations from "./typings/AllowedMigrations";
 import MigrationInstructions from "./typings/MigrationInstructions";
 import MigrationNotAllowedException from "./exceptions/NotAllowedException";
 import DatabaseInstructions, {TableInput} from "./typings/DatabaseInstructions";
 import {TableStructure} from "./typings/TableStructure";
 import TableObj from "./tableInfo/TableObj";
 import {Logger} from "./Logger";
+import {ALLOWED, AllowedMigrations, NO_COLUMN, USED} from "./typings/AllowedMigrations";
 
-export type NotAllowedChangeEntry = {version: number, tableName: string, type: keyof AllowedMigrations};
+export type NotAllowedChangeEntry = {
+	version: number,
+	tableName: string,
+	column: string,
+	type: keyof AllowedMigrations
+};
 
 /**
  * The Migrations class is responsible for managing manual database schema migrations.
@@ -17,7 +22,7 @@ export class Migrations {
 	private lastUsedVersion: number = 0;
 	private migrationData: Record<string, MigrationInstructions> = {};
 	private migrationDataForOldTableNames: Record<string, MigrationInstructions> = {};
-	private alwaysAllowed: AllowedMigrations = {};
+	private alwaysAllowed: (keyof AllowedMigrations)[] = [];
 	private notAllowedChanges: NotAllowedChangeEntry[] = [];
 	
 	
@@ -33,7 +38,7 @@ export class Migrations {
 		this.toVersion = dbInstructions.version;
 		this.migrationData = {};
 		this.migrationDataForOldTableNames = {};
-		this.alwaysAllowed = dbInstructions.alwaysAllowedMigrations ?? {};
+		this.alwaysAllowed = dbInstructions.alwaysAllowedMigrations ?? [];
 		this.notAllowedChanges = [];
 	}
 	
@@ -61,7 +66,6 @@ export class Migrations {
 				recreate: false,
 				renamedColumns: [],
 				allowedMigrations: {},
-				usedMigrations: {}
 			};
 		}
 		return this.migrationData[tableName];
@@ -87,11 +91,13 @@ export class Migrations {
 	 * @throws Error if versions are not properly ordered
 	 */
 	private versionIsRelevant(version: number): boolean {
-		if(version <= this.fromVersion || version > this.toVersion)
+		if(version <= this.fromVersion || version > this.toVersion) {
 			return false;
+		}
 		
-		if(version < this.lastUsedVersion)
+		if(version < this.lastUsedVersion) {
 			throw new Error("Migrations in preMigration() have to be ordered by version (beginning with the lowest version).");
+		}
 		this.lastUsedVersion = version;
 		return true;
 	}
@@ -111,12 +117,15 @@ export class Migrations {
 			
 			//Tables:
 			if(migrationEntry.tableRenaming) {
-				if(migrationEntry.tableRenaming.oldName == tableName)
+				if(migrationEntry.tableRenaming.oldName == tableName) {
 					return new Error(`You set table "${tableName}" to be renamed to itself!`);
-				if(migrationEntry.tableRenaming.newName != tableName)
+				}
+				if(migrationEntry.tableRenaming.newName != tableName) {
 					return new Error(`You set table "${tableName}" to be renamed to a different name than the one in your structure (${migrationEntry.tableRenaming.newName})!`);
-				else if(!newTables[tableName])
+				}
+				else if(!newTables[tableName]) {
 					return new Error(`You set table "${migrationEntry.tableRenaming}" migrations for "${tableName}". But "${tableName}" does not exist in your structure.`);
+				}
 			}
 			
 			//Columns:
@@ -124,10 +133,12 @@ export class Migrations {
 				const oldColumnName = renamingData.oldName;
 				const newColumnName = renamingData.newName;
 				
-				if(oldColumnName == newColumnName)
+				if(oldColumnName == newColumnName) {
 					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to itself!`);
-				else if(!newTables[tableName]?.columns[newColumnName])
+				}
+				else if(!newTables[tableName]?.columns[newColumnName]) {
 					return new Error(`You set column ${tableName}.${oldColumnName} to be renamed to ${tableName}.${newColumnName}. But ${tableName}.${newColumnName} does not exist in your structure.`);
+				}
 			}
 		}
 	}
@@ -140,20 +151,26 @@ export class Migrations {
 	 * @throws Error if unnecessary calls were discovered. All discovered calls are collected and thrown as one Error.
 	 */
 	public verifyAllowedMigrations(): Error | void {
-		if(this.notAllowedChanges.length)
+		if(this.notAllowedChanges.length) {
 			return new MigrationNotAllowedException(this.notAllowedChanges);
+		}
 		
 		let errorMsg = "";
 		for(const tableName in this.migrationData) {
 			const migration = this.migrationData[tableName];
 			for(const type in migration.allowedMigrations) {
-				if(!migration.usedMigrations[type])
-					errorMsg += `Migration \"${type}\" for ${tableName} was allowed but not needed.\n`;
+				const migrationType = migration.allowedMigrations[type as keyof AllowedMigrations];
+				for(const column in migrationType) {
+					if(migrationType[column] != USED) {
+						errorMsg += `Migration \"${type}\" for ${tableName}${column != NO_COLUMN ? `.${column}` : ""} was allowed but not needed.\n`;
+					}
+				}
 			}
 		}
 		
-		if(errorMsg)
+		if(errorMsg) {
 			return new Error(errorMsg);
+		}
 	}
 	
 	/**
@@ -163,16 +180,19 @@ export class Migrations {
 	 * @see allowMigration()
 	 * @param tableName - The name of the table to check the migration against.
 	 * @param type - The type of destructive migration being checked.
+	 * @param column - The column name for which the migration is allowed. Only needed for "dropColumn", "removeForeignKey" and "alterForeignKey".
 	 */
-	public compareWithAllowedMigration(tableName: string, type: keyof AllowedMigrations): void {
+	public compareWithAllowedMigration(tableName: string, type: keyof AllowedMigrations, column: string = NO_COLUMN): void {
 		const migrationEntry = this.migrationData[tableName];
-		
-		if(!migrationEntry?.allowedMigrations[type]) {
-			if(!this.alwaysAllowed[type])
-				this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, type: type});
+		const allowedMigrations = migrationEntry?.allowedMigrations[type];
+		if(!allowedMigrations || !allowedMigrations[column]) {
+			if(!this.alwaysAllowed.includes(type)) {
+				this.notAllowedChanges.push({version: this.toVersion, tableName: tableName, column: column, type: type});
+			}
 		}
-		else if(migrationEntry)
-			migrationEntry.usedMigrations[type] = true;
+		else if(migrationEntry) {
+			allowedMigrations[column] = USED;
+		}
 	}
 	
 	/**
@@ -273,15 +293,38 @@ export class Migrations {
 	 *
 	 * @param version - The target version for which the specific migration is allowed. Must be provided to make sure this method will only have an effect when specified.
 	 * @param table - Either a {@link TableObj} or a class decorated with @TableClass.
-	 * @param allowedMigrations - The keys representing the migrations to be allowed. Multiple migrations can be provided
+	 * @param allowedMigration - The keys representing the migrations to be allowed.
+	 * @param column - The column name for which the migration is allowed. Only needed for "dropColumn", "removeForeignKey" and "alterForeignKey".
+	 *
+	 * @throws Error if the provided column name is not valid for the specified migration.
 	 */
-	public allowMigration(version: number, table: TableInput, ... allowedMigrations: (keyof AllowedMigrations)[]): void {
-		if(!this.versionIsRelevant(version))
+	public allowMigration(version: number, table: TableInput, allowedMigration: keyof AllowedMigrations, column?: string): void {
+		if(!this.versionIsRelevant(version)) {
 			return;
+		}
 		const entry = this.getEntry(table);
 		
-		for(const key of allowedMigrations) {
-			entry.allowedMigrations[key] = true;
+		if(!entry.allowedMigrations[allowedMigration]) {
+			entry.allowedMigrations[allowedMigration] = {};
+		}
+		entry.allowedMigrations[allowedMigration][column ?? NO_COLUMN] = ALLOWED;
+		
+		if(column) {
+			switch(allowedMigration) {
+				case "recreateTable":
+				case "dropTable":
+				case "continueWithoutRollback":
+				case "alterPrimaryKey":
+					throw new Error(`You cannot use the ${allowedMigration} migration with a column name. Please remove the column name.`);
+			}
+		}
+		else {
+			switch(allowedMigration) {
+				case "dropColumn":
+				case "removeForeignKey":
+				case "alterForeignKey":
+					throw new Error(`The ${allowedMigration} migration requires a column name. Please provide one.`);
+			}
 		}
 	}
 	
@@ -296,16 +339,18 @@ export class Migrations {
 	 * @param newTableName - The new table name or its equivalent input format.
 	 */
 	public renameTable(version: number, oldTableName: string, newTableName: TableInput): void {
-		if(!this.versionIsRelevant(version))
+		if(!this.versionIsRelevant(version)) {
 			return;
+		}
 		const newTableNameString = this.getTableName(newTableName);
 		
 		//add data for renaming:
 		const entry = this.getEntry(newTableName);
 		this.migrationDataForOldTableNames[oldTableName] = entry;
 		
-		if(!entry.tableRenaming)
+		if(!entry.tableRenaming) {
 			entry.tableRenaming = {oldName: oldTableName, newName: newTableNameString};
+		}
 		else //we only care about the oldest (=current) table name
 			entry.tableRenaming.newName = newTableNameString;
 	}
@@ -322,15 +367,18 @@ export class Migrations {
 	 * @param newColumn The new name to assign to the column.
 	 */
 	public renameColumn(version: number, table: TableInput, oldColumn: string, newColumn: string): void {
-		if(!this.versionIsRelevant(version))
+		if(!this.versionIsRelevant(version)) {
 			return;
+		}
 		const entry = this.getEntry(table);
 		const existingColumnEntry = entry.renamedColumns.find((entry) => entry.newName == oldColumn);
 		
-		if(existingColumnEntry)
+		if(existingColumnEntry) {
 			existingColumnEntry.newName = newColumn;
-		else
+		}
+		else {
 			entry.renamedColumns.push({oldName: oldColumn, newName: newColumn});
+		}
 	}
 	
 	/**
@@ -343,8 +391,9 @@ export class Migrations {
 	 * @param table Either a {@link TableObj} or a class decorated with @TableClass.
 	 */
 	public recreateTable(version: number, table: TableInput): void {
-		if(!this.versionIsRelevant(version))
+		if(!this.versionIsRelevant(version)) {
 			return;
+		}
 		const entry = this.getEntry(table);
 		entry.recreate = true;
 		Logger.log(`Table ${this.getTableName(table)} will be recreated!`);

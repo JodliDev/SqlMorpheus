@@ -1,4 +1,4 @@
-import AllowedMigrations from "./AllowedMigrations";
+import {AllowedMigrations} from "./AllowedMigrations";
 
 export interface RenameData {
 	oldName: string;
@@ -15,5 +15,4 @@ export default interface MigrationInstructions {
 	renamedColumns: RenameData[];
 	
 	allowedMigrations: AllowedMigrations;
-	usedMigrations: Record<string, boolean>
 }

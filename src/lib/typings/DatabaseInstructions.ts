@@ -1,9 +1,8 @@
 import {TableClassInterface, Class} from "./TableClassInterface";
 import {PublicMigrations} from "../Migrations";
 import {SqlChanges} from "./SqlChanges";
-import AllowedMigrations from "./AllowedMigrations";
 import {TableObjInput} from "../tableInfo/TableObj";
-
+import {AllowedMigrations} from "./AllowedMigrations";
 
 export type TableInput = TableObjInput | Class<TableClassInterface>;
 
@@ -14,7 +13,7 @@ export default interface DatabaseInstructions {
 	configPath: string;
 	throwIfNotAllowed: boolean;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
-	alwaysAllowedMigrations?: AllowedMigrations;
+	alwaysAllowedMigrations?: (keyof AllowedMigrations)[];
 	
 	/**
 	 * Custom migrations that will run before any database changes are applied.

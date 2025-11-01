@@ -8,6 +8,7 @@ import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
 import NotAllowedException from "../src/lib/exceptions/NotAllowedException";
 import TableObj from "../src/lib/tableInfo/TableObj";
 import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
+import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations";
 
 class DefaultDialect extends DefaultSql {
 	getColumnInformation(_: string): Promise<Record<string, ColumnInfo>> {
@@ -171,7 +172,7 @@ describe("MigrationManager", () => {
 		//check results:
 		await expect(
 			manager.generateSqlChanges({...mockDbInstructions, version: 2})
-		).rejects.toThrow(new NotAllowedException([{version: 2, tableName: "TableA", type: "dropTable"}]));
+		).rejects.toThrow(new NotAllowedException([{version: 2, tableName: "TableA", type: "dropTable", column: NO_COLUMN}]));
 	});
 	
 	it("should correctly rename a column", async() => {
