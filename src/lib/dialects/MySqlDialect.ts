@@ -1,5 +1,5 @@
 import DefaultSql from "./DefaultSql";
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
 import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
@@ -15,16 +15,25 @@ export default class MySqlDialect extends DefaultSql {
 		string: "VARCHAR",
 		number: "INT",
 		bigint: "BIGINT",
-		boolean: "BOOLEAN",
+		boolean: "TINYINT(1)",
 		date: "DATE",
 		time: "TIME",
 		dateTime: "DATETIME",
 	};
 	
+	public formatValueToSql(value: any, type: DataTypeOptions): string {
+		switch(type) {
+			case "boolean":
+				return value ? "1" : "0";
+			default:
+				return super.formatValueToSql(value, type);
+		}
+	}
+	
 	public getSqlType(dataType: DataTypeOptions, columnInfo?: ColumnInfo) {
 		switch(dataType) {
 			case "string":
-				return this.types[dataType] + `(${columnInfo?.maxLength})`;
+				return this.types[dataType] + `(${columnInfo?.maxLength ?? 100})`;
 			default:
 				return super.getSqlType(dataType, columnInfo);
 		}
@@ -48,33 +57,55 @@ export default class MySqlDialect extends DefaultSql {
 	}
 	
 	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-		const data = await this.db.runGetStatement(`SELECT TABLE_NAME,COLUMN_NAME,CONSTRAINT_NAME, REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = (SELECT DATABASE()) AND REFERENCED_TABLE_NAME = '${tableName}';`);
+		const data = await this.db.runGetStatement(`SELECT
+				info.TABLE_NAME, info.COLUMN_NAME, info.REFERENCED_TABLE_NAME, info.REFERENCED_COLUMN_NAME, constr.UPDATE_RULE, constr.DELETE_RULE
+			FROM information_schema.KEY_COLUMN_USAGE AS info INNER JOIN information_schema.REFERENTIAL_CONSTRAINTS AS constr ON info.CONSTRAINT_NAME = constr.CONSTRAINT_NAME
+			WHERE info.REFERENCED_TABLE_SCHEMA = (SELECT DATABASE()) AND info.TABLE_NAME = '${tableName}';`
+		);
 		return (data as Record<string, string>[]).map(entry => {
 			return {
 				fromTable: tableName,
 				fromColumn: entry["COLUMN_NAME"],
 				toTable: entry["REFERENCED_TABLE_NAME"],
-				toColumn: entry["REFERENCED_COLUMN_NAME"]
+				toColumn: entry["REFERENCED_COLUMN_NAME"],
+				onUpdate: entry["UPDATE_RULE"] as ForeignKeyActions,
+				onDelete: entry["DELETE_RULE"] as ForeignKeyActions
 			}
 		});
 	}
 	
 	public async getTableNames(): Promise<string[]> {
-		return (await this.db.runGetStatement("SELECT table_name FROM information_schema.tables;") as Record<string, string>[])
-			.map(entry => entry.name);
+		// const entries = await this.db.runGetStatement("SELECT table_name, table_schema  FROM information_schema.tables;") as Record<string, string>[]
+		const entries = await this.db.runGetStatement("SHOW TABLES") as Record<string, string>[]
+		return entries.map(entry => Object.values(entry)[0]);
 	}
 	
 	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 		const data = await this.db.runGetStatement(`SHOW COLUMNS FROM ${tableName};`) as Record<string, string>[];
 		const output: Record<string, ColumnInfo> = {};
 		for(const entry of data) {
-			output[entry["name"]] = {
-				name: entry["name"],
-				type: entry["type"],
-				maxLength: 0,
-				defaultValue: entry["dflt_value"],
-				isPrimaryKey: entry["pk"] == "1",
+			const sqlType = entry["Type"].toUpperCase();
+			
+			const info: ColumnInfo = {
+				name: entry["Field"],
+				sqlType: sqlType,
+				isPrimaryKey: entry["Key"] == "PRI",
 			}
+			switch(sqlType.substring(0, 4)) {
+				case "TEXT":
+				case "VARC":
+				case "DATE":
+				case "TIME":
+					info.defaultValue = entry["Default"] ? `"${entry["Default"]}"` : this.nullType;
+					break;
+				default:
+					info.defaultValue = entry["Default"] ?? this.nullType;
+			}
+			// const lengthMatch = entry["Type"].match(/^\w+\((\d+)\)/);
+			// if(lengthMatch) {
+			// 	info.maxLength = parseInt(lengthMatch[1]) ?? 0
+			// }
+			output[entry["Field"]] = info;
 		}
 		return output;
 	}

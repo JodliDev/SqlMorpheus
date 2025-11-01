@@ -4,8 +4,9 @@ import MsSqlDialect from "./dialects/MsSqlDialect";
 import MySqlDialect from "./dialects/MySqlDialect";
 import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {DatabaseAccess} from "./typings/DatabaseAccess";
+import DefaultSql from "./dialects/DefaultSql";
 
-export default function getDialect(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
+export default function getDialect(db: DatabaseAccess, dbInstructions: DatabaseInstructions): DefaultSql {
 	switch(dbInstructions.dialect) {
 		case "Sqlite":
 			return new SqliteDialect(db);
