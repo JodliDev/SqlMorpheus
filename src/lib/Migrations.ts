@@ -348,6 +348,7 @@ export class Migrations {
 		const entry = this.getEntry(table);
 		entry.recreate = true;
 		Logger.log(`Table ${this.getTableName(table)} will be recreated!`);
+		this.allowMigration(version, table, "recreateTable");
 	}
 }
 
