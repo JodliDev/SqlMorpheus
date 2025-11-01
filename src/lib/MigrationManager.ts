@@ -121,16 +121,18 @@ export class MigrationManager {
 		changes.up += `\n\n${foreignKeyOnQuery}`;
 		changes.down += `\n\n${foreignKeyOnQuery}`;
 		
-		const exception = this.migrations.verifyRenamingTasks(this.newTables) ?? this.migrations.verifyAllowedMigrations();
-		
-		if(exception) {
-			Logger.debug(`\nCanceled changes:\n${changes.up}\n`);
+		if(fromVersion != 0) {
+			const exception = this.migrations.verifyRenamingTasks(this.newTables) ?? this.migrations.verifyAllowedMigrations();
 			
-			if(dbInstructions.throwIfNotAllowed)
-				throw exception;
-			else {
-				console.error(exception.message);
-				return null;
+			if(exception) {
+				Logger.debug(`\nCanceled changes:\n${changes.up}\n`);
+				
+				if(dbInstructions.throwIfNotAllowed)
+					throw exception;
+				else {
+					console.error(exception.message);
+					return null;
+				}
 			}
 		}
 		
