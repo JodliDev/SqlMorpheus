@@ -73,9 +73,7 @@ export default abstract class DefaultSql {
 	 * @param enabled - A boolean indicating whether to enable or disable foreign key constraints.
 	 * @return The SQL statement as a string.
 	 */
-	public changeForeignKeysState(enabled: boolean): string {
-		return "";
-	}
+	public abstract changeForeignKeysState(enabled: boolean): Promise<void>;
 	
 	/**
 	 * Statement to add a foreign key to a specified table.

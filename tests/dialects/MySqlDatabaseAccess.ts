@@ -5,7 +5,7 @@ import {MySqlContainer} from "@testcontainers/mysql";
 export class MySqlDatabaseAccess implements DatabaseAccess {
 	private db: mysql.Connection;
 	
-	constructor(connection: mysql.Connection) {
+	private constructor(connection: mysql.Connection) {
 		this.db = connection;
 	}
 	
@@ -30,6 +30,9 @@ export class MySqlDatabaseAccess implements DatabaseAccess {
 		}
 	}
 	
+	/**
+	 * Only used in dialects.integration.test.ts
+	 */
 	public close(): void {
 		this.db.destroy();
 	}

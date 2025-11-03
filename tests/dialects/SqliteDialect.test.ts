@@ -11,11 +11,6 @@ describe("SqliteDialect", () => {
 	
 	const mockDialect = new SqliteDialect(mockAccess);
 	
-	it("changeForeignKeysState", () => {
-		expect(mockDialect.changeForeignKeysState(true)).toBe("PRAGMA foreign_keys = ON;");
-		expect(mockDialect.changeForeignKeysState(false)).toBe("PRAGMA foreign_keys = OFF;");
-	});
-	
 	describe("formatValueToSql", () => {
 		it("should format date values correctly", () => {
 			const result = mockDialect.formatValueToSql(new Date("2025-07-20"), "date");

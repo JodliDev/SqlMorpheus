@@ -21,7 +21,9 @@ export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseI
 		await dialect.setChanges(migration.fromVersion, dbInstructions.version, migration.changes);
 		
 		await db.createBackup?.(`from_${migration.fromVersion}_to_${dbInstructions.version}`);
+		await dialect.changeForeignKeysState(false);
 		await db.runTransaction(migration.changes.up);
+		await dialect.changeForeignKeysState(true);
 	}
 }
 
@@ -33,6 +35,7 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 	await db.createBackup?.(`from_${fromVersion}_to_${dbInstructions.version}`);
 	Logger.log(`Rolling back from ${fromVersion} to ${toVersion}`);
 	let version = fromVersion;
+	await dialect.changeForeignKeysState(false);
 	while(version > toVersion) {
 		const changes = await dialect.getChanges(version);
 		if(!changes) {
@@ -48,6 +51,7 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 		
 		version = changes.fromVersion;
 	}
+	await dialect.changeForeignKeysState(true);
 	
 	if(version < toVersion) {
 		Logger.warn(`There was no entry for version ${toVersion}. Rolled back to version ${version}`);

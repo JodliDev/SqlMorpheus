@@ -38,9 +38,13 @@ export default class MySqlDialect extends DefaultSql {
 				return super.getSqlType(dataType, columnInfo);
 		}
 	}
-	
-	public changeForeignKeysState(enabled: boolean): string {
-		return `SET FOREIGN_KEY_CHECKS ${enabled ? "1" : "0"};`;
+	public async changeForeignKeysState(enabled: boolean): Promise<void> {
+		if(enabled) {
+			await this.db.runWriteStatement(`SET FOREIGN_KEY_CHECKS = 1;`);
+		}
+		else {
+			await this.db.runWriteStatement(`SET FOREIGN_KEY_CHECKS = 0;`);
+		}
 	}
 	public addForeignKey(fromTableName: string, foreignKey: string): string {
 		return `ALTER TABLE ${fromTableName} ADD ${foreignKey};`;

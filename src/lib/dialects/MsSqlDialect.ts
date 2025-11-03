@@ -8,8 +8,13 @@ export default class MsSqlDialect extends DefaultSql {
 	public canInspectForeignKeys: boolean = true;
 	public canInspectPrimaryKey: boolean = false;
 	
-	public changeForeignKeysState(enabled: boolean): string {
-		return `EXEC sp_MSforeachtable "${enabled ? "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all" : "ALTER TABLE ? NOCHECK CONSTRAINT all"}"`;
+	public async changeForeignKeysState(enabled: boolean): Promise<void> {
+		if(enabled) {
+			await this.db.runWriteStatement(`EXEC sp_MSforeachtable ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all`);
+		}
+		else {
+			await this.db.runWriteStatement(`EXEC sp_MSforeachtable ALTER TABLE ? NOCHECK CONSTRAINT all`);
+		}
 	}
 	public addForeignKey(fromTableName: string, foreignKey: string): string {
 		return `ALTER TABLE ${fromTableName} ADD ${foreignKey};`;

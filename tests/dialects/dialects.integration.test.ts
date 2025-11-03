@@ -316,6 +316,77 @@ describe.each([
 				sqlDialect.dropTable("ChildTable3")
 			);
 		});
+		
+		it("should successfully disable foreign keys", async () => {
+			//setup:
+			
+			const rootTableQuery = sqlDialect.createTable("RootTable", [
+				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false, "")
+			]);
+			const rootInsertQuery = sqlDialect.insert("RootTable", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'Root entry')"));
+			const parentInsertQuery = sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (10, 'Parent entry')"));
+			const childInsertQuery = sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (100, 10, 'Child entry')"));
+			
+			await databaseAccess.runTransaction(rootTableQuery + rootInsertQuery + parentInsertQuery + childInsertQuery);
+			
+			// Change ParentTable structure by adding a column with a foreign key:
+			// (we recreate ParentTable to test if ChildTable gets cascaded):
+			
+			await sqlDialect.changeForeignKeysState(false);
+			
+			const recreateTableQuery = sqlDialect.createTable("Parent__backup", [
+				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false, ""),
+				sqlDialect.columnDefinition("rootId", sqlDialect.getSqlType("number"), false, "0"),
+				sqlDialect.foreignKey("rootId", "RootTable", "id", undefined, "CASCADE")
+			]);
+			const copyDataQuery = sqlDialect.insert("Parent__backup", sqlDialect.insertValues(["id", "name"], "SELECT id, name FROM ParentTable"));
+			const replaceTableQuery = "DROP TABLE IF EXISTS ParentTable; ALTER TABLE Parent__backup RENAME TO ParentTable;";
+			const updateQuery = "UPDATE ParentTable SET rootId = 1;";
+			
+			await databaseAccess.runTransaction(recreateTableQuery + copyDataQuery + replaceTableQuery + updateQuery);
+			await sqlDialect.changeForeignKeysState(true);
+			
+			
+			// test:
+			// We expect that ChildTable still has all its entries (and was not cascaded)
+			// and that ParenTable has its entries even though its new foreign key constraint was not fulfilled for a second
+			
+			const rootEntries = await databaseAccess.runReadStatement("SELECT id, name FROM RootTable");
+			expect(rootEntries).toEqual([{id: 1, name: "Root entry"}]);
+			
+			const parentEntries = await databaseAccess.runReadStatement("SELECT id, name, rootId FROM ParentTable");
+			expect(parentEntries).toEqual([{id: 10, name: "Parent entry", rootId: 1}]);
+			
+			const childEntries = await databaseAccess.runReadStatement("SELECT id, name, parentId FROM ChildTable");
+			expect(childEntries).toEqual([{id: 100, name: "Child entry", parentId: 10}]);
+			
+			
+			const parentForeignKeys = await sqlDialect.getForeignKeys("ParentTable");
+			expect(parentForeignKeys).toEqual([
+				{
+					fromTable: "ParentTable",
+					fromColumn: "rootId",
+					toTable: "RootTable",
+					toColumn: "id",
+					onUpdate: "NO ACTION",
+					onDelete: "CASCADE"
+				},
+			]);
+			
+			const childForeignKeys = await sqlDialect.getForeignKeys("ChildTable");
+			expect(childForeignKeys).toEqual([
+				{
+					fromTable: "ChildTable",
+					fromColumn: "parentId",
+					toTable: "ParentTable",
+					toColumn: "id",
+					onUpdate: "SET NULL",
+					onDelete: "CASCADE"
+				},
+			]);
+		});
 	});
 	
 	describe("setVersion and getVersion", () => {

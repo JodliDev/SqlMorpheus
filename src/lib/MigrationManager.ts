@@ -59,11 +59,9 @@ export class MigrationManager {
 		if(fromVersion > toVersion)
 			throw new Error(`You cannot create new migrations with a lower version (from ${fromVersion} to ${toVersion})`);
 		
-		//disable foreign keys to prevent errors:
-		const foreignKeyOffQuery = this.dialect.changeForeignKeysState(false);
 		const changes = {
-			up: foreignKeyOffQuery,
-			down: foreignKeyOffQuery
+			up: "",
+			down: ""
 		} satisfies SqlChanges;
 		this.migrations.reset(dbInstructions, fromVersion);
 		
@@ -116,11 +114,6 @@ export class MigrationManager {
 			changes.down += `\n\n-- Custom SQL from postMigration()\n${postSql.down}`;
 		}
 		
-		//Enable foreign key constraints again:
-		const foreignKeyOnQuery = this.dialect.changeForeignKeysState(true);
-		changes.up += `\n\n${foreignKeyOnQuery}`;
-		changes.down += `\n\n${foreignKeyOnQuery}`;
-		
 		if(fromVersion != 0) {
 			const exception = this.migrations.verifyRenamingTasks(this.newTables) ?? this.migrations.verifyAllowedMigrations();
 			
@@ -137,8 +130,8 @@ export class MigrationManager {
 		}
 		
 		return {
-			fromVersion:fromVersion,
-			toVersion:toVersion,
+			fromVersion: fromVersion,
+			toVersion: toVersion,
 			changes: changes
 		};
 	}

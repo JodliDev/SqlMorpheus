@@ -7,8 +7,13 @@ export default class PostgresDialect extends DefaultSql {
 	public canInspectForeignKeys: boolean = false;
 	public canInspectPrimaryKey: boolean = false;
 	
-	public changeForeignKeysState(enabled: boolean): string {
-		return `SET session_replication_role = '${enabled ? "replica" : "origin"}';`;
+	public async changeForeignKeysState(enabled: boolean): Promise<void> {
+		if(enabled) {
+			await this.db.runWriteStatement(`SET session_replication_role = replica;`);
+		}
+		else {
+			await this.db.runWriteStatement(`SET session_replication_role = origin;`);
+		}
 	}
 	public addForeignKey(fromTableName: string, foreignKey: string): string {
 		return `ALTER TABLE ${fromTableName} ADD CONSTRAINT ${fromTableName} ${foreignKey};`;

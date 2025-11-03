@@ -23,8 +23,16 @@ export default class SqliteDialect extends DefaultSql {
 	public canInspectForeignKeys: boolean = true;
 	public canInspectPrimaryKey: boolean = true;
 	
-	public changeForeignKeysState(enabled: boolean): string {
-		return `PRAGMA foreign_keys = ${enabled ? "ON" : "OFF"};`;
+	public async changeForeignKeysState(enabled: boolean): Promise<void> {
+		if(enabled) {
+			await this.db.runWriteStatement(`PRAGMA foreign_keys = ON;`);
+			await this.db.runWriteStatement(`PRAGMA foreign_key_check;`);
+			await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = OFF;`);
+		}
+		else {
+			await this.db.runWriteStatement(`PRAGMA foreign_keys = OFF;`);
+			await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = ON;`);
+		}
 	}
 	
 	public async getTableNames(): Promise<string[]> {
