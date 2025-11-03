@@ -39,7 +39,7 @@ describe.each([
 				sqlDialect.columnDefinition("royalTitle", sqlDialect.getSqlType("string", {maxLength: 100} as ColumnInfo), false, sqlDialect.nullType)
 			];
 			
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.createTable(tableName, entries)
 			);
 			
@@ -65,30 +65,30 @@ describe.each([
 	
 	describe("Table operations", () => {
 		beforeEach(async() => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.createTable("users", ["id INTEGER PRIMARY KEY", "name TEXT"])
 			);
 		});
 		afterEach(async() => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.dropTable("users")
 			);
 		});
 		
 		it("renameTable", async() => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.renameTable("users", "accounts")
 			);
 			
 			const tables = await sqlDialect.getTableNames();
 			expect(tables).toEqual(["accounts"]);
 			
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.dropTable("accounts")
 			);
 		});
 		it("dropTable", async() => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.dropTable("users")
 			);
 			
@@ -101,12 +101,12 @@ describe.each([
 		beforeEach(async() => {
 			// Create table
 			const createQuery = sqlDialect.dropTable("users") + sqlDialect.createTable("users", ["id INTEGER PRIMARY KEY", "name TEXT"]);
-			await databaseAccess.runMultipleWriteStatements(createQuery);
+			await databaseAccess.runTransaction(createQuery);
 		});
 		
 		it("createColumn", async() => {
 			const addColumnQuery = sqlDialect.createColumn("users", "new TEXT");
-			await databaseAccess.runMultipleWriteStatements(addColumnQuery);
+			await databaseAccess.runTransaction(addColumnQuery);
 			
 			const tableInfo = await sqlDialect.getColumnInformation("users");
 			expect(tableInfo).toEqual({
@@ -117,7 +117,7 @@ describe.each([
 		});
 		it("renameColumn", async() => {
 			const renameColumnQuery = sqlDialect.renameColumn("users", "name", "newName");
-			await databaseAccess.runMultipleWriteStatements(renameColumnQuery);
+			await databaseAccess.runTransaction(renameColumnQuery);
 			
 			const tableInfo = await sqlDialect.getColumnInformation("users");
 			expect(tableInfo).toEqual({
@@ -127,7 +127,7 @@ describe.each([
 		});
 		it("dropColumn", async() => {
 			const dropColumnQuery = sqlDialect.dropColumn("users", "name");
-			await databaseAccess.runMultipleWriteStatements(dropColumnQuery);
+			await databaseAccess.runTransaction(dropColumnQuery);
 			
 			const tableInfo = await sqlDialect.getColumnInformation("users");
 			expect(tableInfo).toEqual({
@@ -138,7 +138,7 @@ describe.each([
 	
 	describe("Query Operations", () => {
 		beforeEach(async () => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.createTable("test_table", [
 					sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
 					sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false)
@@ -146,20 +146,20 @@ describe.each([
 			);
 		});
 		afterEach(async() => {
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.dropTable("test_table")
 			);
 		});
 		
 		it("select", async () => {
 			// Insert test data
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.insert("test_table", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'test1')"))+
 				sqlDialect.insert("test_table", sqlDialect.insertValues(["id", "name"], "VALUES (2, 'test2')"))
 			);
 			
 			// Test basic select
-			let result = await databaseAccess.runGetStatement(
+			let result = await databaseAccess.runReadStatement(
 				sqlDialect.select("test_table", ["id", "name"])
 			);
 			expect(result).toEqual([
@@ -168,7 +168,7 @@ describe.each([
 			]);
 			
 			// Test select with where clause
-			result = await databaseAccess.runGetStatement(
+			result = await databaseAccess.runReadStatement(
 				sqlDialect.select("test_table", ["id", "name"], "id = 1")
 			);
 			expect(result).toEqual([{id: 1, name: "test1"}]);
@@ -178,9 +178,9 @@ describe.each([
 			const insertQuery = sqlDialect.insert("test_table",
 				sqlDialect.insertValues(["id", "name"], "VALUES (1, 'test')")
 			);
-			await databaseAccess.runMultipleWriteStatements(insertQuery);
+			await databaseAccess.runTransaction(insertQuery);
 			
-			const result = await databaseAccess.runGetStatement(
+			const result = await databaseAccess.runReadStatement(
 				sqlDialect.select("test_table", ["id", "name"])
 			);
 			expect(result).toEqual([{id: 1, name: "test"}]);
@@ -190,116 +190,119 @@ describe.each([
 	describe("foreignKey", () => {
 		beforeEach(async() => {
 			// Create parent table
-			await databaseAccess.runMultipleWriteStatements(
-				sqlDialect.createTable("parentTable", [
-					sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0")
+			await databaseAccess.runTransaction(
+				sqlDialect.createTable("ParentTable", [
+					sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+					sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false, "")
 				])
 			);
 			
 			// Create child table with foreign key
-			const childTableQuery = sqlDialect.createTable("childTable", [
-				sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
-				sqlDialect.columnDefinition("parent_id", sqlDialect.types.number, false, "0"),
-				sqlDialect.foreignKey("parent_id", "parentTable", "id", "SET NULL", "CASCADE")
+			const childTableQuery = sqlDialect.createTable("ChildTable", [
+				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				sqlDialect.columnDefinition("parentId", sqlDialect.getSqlType("number"), false, "0"),
+				sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false, ""),
+				sqlDialect.foreignKey("parentId", "ParentTable", "id", "SET NULL", "CASCADE")
 			]);
-			await databaseAccess.runMultipleWriteStatements(childTableQuery);
+			await databaseAccess.runTransaction(childTableQuery);
 		});
 		afterEach(async() => {
-			await databaseAccess.runMultipleWriteStatements(
-				sqlDialect.dropTable("childTable") +
-				sqlDialect.dropTable("parentTable")
+			const tables = await sqlDialect.getTableNames();
+			
+			await databaseAccess.runTransaction(
+				tables.map(table => sqlDialect.dropTable(table)).join("")
 			);
 		});
+		
 		it("should create foreign key constraints", async () => {
 			// Insert parent record
-			await databaseAccess.runMultipleWriteStatements(
-				sqlDialect.insert("parentTable", sqlDialect.insertValues(["id"], "VALUES (1)"))
+			await databaseAccess.runTransaction(
+				sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'Parent 1')"))
 			);
 			
 			// Test foreign key constraint
-			await databaseAccess.runMultipleWriteStatements(
-				sqlDialect.insert("childTable", sqlDialect.insertValues(["id", "parent_id"], "VALUES (1, 1)"))
+			await databaseAccess.runTransaction(
+				sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (1, 1, 'Child 1')"))
 			);
 			
 			// Verify data
-			const result = await databaseAccess.runGetStatement(
-				sqlDialect.select("childTable", ["id", "parent_id"])
+			const result = await databaseAccess.runReadStatement(
+				sqlDialect.select("ChildTable", ["id", "parentId", "name"])
 			);
-			expect(result).toEqual([{ id: 1, parent_id: 1 }]);
+			expect(result).toEqual([{ id: 1, parentId: 1, name: 'Child 1' }]);
 			
 			// Test foreign key constraint violation
 			await expect(
-				databaseAccess.runMultipleWriteStatements(
-					sqlDialect.insert("childTable", sqlDialect.insertValues(["id", "parent_id"], "VALUES (2, 999)"))
+				databaseAccess.runTransaction(
+					sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (2, 999, 'Child 2')"))
 				)
 			).rejects.toThrow();
 			
 			// Remove parent entry
-			await databaseAccess.runMultipleWriteStatements("DELETE FROM parentTable WHERE id = 1");
+			await databaseAccess.runTransaction("DELETE FROM ParentTable WHERE id = 1");
 			
 			// Verify parent entry being removed
-			const resultParent = await databaseAccess.runGetStatement(
-				sqlDialect.select("parentTable", ["id"])
+			const resultParent = await databaseAccess.runReadStatement(
+				sqlDialect.select("ParentTable", ["id"])
 			);
 			expect(resultParent).toEqual([]);
 			
 			// Verify child entry being removed
-			const resultChild = await databaseAccess.runGetStatement(
-				sqlDialect.select("childTable", ["id"])
+			const resultChild = await databaseAccess.runReadStatement(
+				sqlDialect.select("ChildTable", ["id"])
 			);
 			expect(resultChild).toEqual([]);
 			
 			//cleanup:
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.dropTable("users")
 			);
 		});
 		
-		
 		it("should return the correct foreign key data", async() => {
 			// Create child table with foreign key
-			const childTable2Query = sqlDialect.createTable("childTable2", [
-				sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
-				sqlDialect.columnDefinition("parent_id", sqlDialect.types.number, false, "0"),
-				sqlDialect.foreignKey("parent_id", "parentTable", "id", "SET DEFAULT")
+			const childTable2Query = sqlDialect.createTable("ChildTable2", [
+				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				sqlDialect.columnDefinition("parentId", sqlDialect.getSqlType("number"), false, "0"),
+				sqlDialect.foreignKey("parentId", "ParentTable", "id", "SET DEFAULT")
 			]);
-			const childTable3Query = sqlDialect.createTable("childTable3", [
-				sqlDialect.columnDefinition("id", sqlDialect.types.number, true, "0"),
-				sqlDialect.columnDefinition("parent_id", sqlDialect.types.number, false, "0"),
-				sqlDialect.foreignKey("parent_id", "parentTable", "id", undefined, "SET NULL")
+			const childTable3Query = sqlDialect.createTable("ChildTable3", [
+				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				sqlDialect.columnDefinition("parentId", sqlDialect.getSqlType("number"), false, "0"),
+				sqlDialect.foreignKey("parentId", "ParentTable", "id", undefined, "SET NULL")
 			]);
-			await databaseAccess.runMultipleWriteStatements(childTable2Query + childTable3Query);
+			await databaseAccess.runTransaction(childTable2Query + childTable3Query);
 			
-			const foreignKeys = await sqlDialect.getForeignKeys("childTable");
+			const foreignKeys = await sqlDialect.getForeignKeys("ChildTable");
 			expect(foreignKeys).toEqual([
 				{
-					fromTable: "childTable",
-					fromColumn: "parent_id",
-					toTable: "parentTable",
+					fromTable: "ChildTable",
+					fromColumn: "parentId",
+					toTable: "ParentTable",
 					toColumn: "id",
 					onUpdate: "SET NULL",
 					onDelete: "CASCADE"
 				},
 			]);
 			
-			const foreignKeys2 = await sqlDialect.getForeignKeys("childTable2");
+			const foreignKeys2 = await sqlDialect.getForeignKeys("ChildTable2");
 			expect(foreignKeys2).toEqual([
 				{
-					fromTable: "childTable2",
-					fromColumn: "parent_id",
-					toTable: "parentTable",
+					fromTable: "ChildTable2",
+					fromColumn: "parentId",
+					toTable: "ParentTable",
 					toColumn: "id",
 					onUpdate: "SET DEFAULT",
 					onDelete: "NO ACTION"
 				},
 			]);
 			
-			const foreignKeys3 = await sqlDialect.getForeignKeys("childTable3");
+			const foreignKeys3 = await sqlDialect.getForeignKeys("ChildTable3");
 			expect(foreignKeys3).toEqual([
 				{
-					fromTable: "childTable3",
-					fromColumn: "parent_id",
-					toTable: "parentTable",
+					fromTable: "ChildTable3",
+					fromColumn: "parentId",
+					toTable: "ParentTable",
 					toColumn: "id",
 					onUpdate: "NO ACTION",
 					onDelete: "SET NULL",
@@ -308,9 +311,9 @@ describe.each([
 			
 			
 			//cleanup
-			await databaseAccess.runMultipleWriteStatements(
-				sqlDialect.dropTable("childTable2") +
-				sqlDialect.dropTable("childTable3")
+			await databaseAccess.runTransaction(
+				sqlDialect.dropTable("ChildTable2") +
+				sqlDialect.dropTable("ChildTable3")
 			);
 		});
 	});
@@ -318,7 +321,7 @@ describe.each([
 	describe("setVersion and getVersion", () => {
 		beforeEach(async() => {
 			// Create table
-			await databaseAccess.runMultipleWriteStatements(
+			await databaseAccess.runTransaction(
 				sqlDialect.createTable("test_table", [
 					sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
 					sqlDialect.columnDefinition("name", sqlDialect.getSqlType("string"), false, "'q'")

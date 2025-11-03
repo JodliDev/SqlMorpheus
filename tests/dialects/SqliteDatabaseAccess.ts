@@ -8,14 +8,24 @@ export class SqliteDatabaseAccess implements DatabaseAccess {
 		this.db = new BetterSqlite3(':memory:');
 	}
 	
-	public async runGetStatement(query: string): Promise<any[]> {
+	public async runReadStatement(query: string): Promise<any[]> {
 		return this.db.prepare(query).all();
 	}
 	
-	public async runMultipleWriteStatements(query: string): Promise<void> {
-		this.db.exec(query);
+	public async runWriteStatement(query: string): Promise<void> {
+		this.db.prepare(query).run();
 	}
 	
+	public async runTransaction(query: string): Promise<void> {
+		const transaction = this.db.transaction(() => {
+			this.db.exec(query);
+		});
+		transaction();
+	}
+	
+	/**
+	 * Only used in dialects.integration.test.ts
+	 */
 	public close(): void {
 		this.db.close();
 	}

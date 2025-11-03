@@ -4,8 +4,9 @@ import {DatabaseAccess} from "../../src";
 
 describe("SqliteDialect", () => {
 	const mockAccess = {
-		runGetStatement: vi.fn(),
-		runMultipleWriteStatements: vi.fn(),
+		runReadStatement: vi.fn(),
+		runWriteStatement: vi.fn(),
+		runTransaction: vi.fn(),
 	} satisfies DatabaseAccess;
 	
 	const mockDialect = new SqliteDialect(mockAccess);

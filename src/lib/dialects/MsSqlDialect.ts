@@ -26,7 +26,7 @@ export default class MsSqlDialect extends DefaultSql {
 	}
 	
 	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-		const data = await this.db.runGetStatement(`EXEC sp_fkeys @fktable_name = ${tableName};`);
+		const data = await this.db.runReadStatement(`EXEC sp_fkeys @fktable_name = ${tableName};`);
 		return (data as Record<string, string>[]).map(entry => {
 			return {
 				fromTable: entry[tableName],
@@ -38,12 +38,12 @@ export default class MsSqlDialect extends DefaultSql {
 	}
 	
 	public async getTableNames(): Promise<string[]> {
-		return (await this.db.runGetStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'") as Record<string, string>[])
+		return (await this.db.runReadStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'") as Record<string, string>[])
 			.map(entry => entry.name);
 	}
 	
 	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
-		const data = await this.db.runGetStatement(`SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'${tableName};'`);
+		const data = await this.db.runReadStatement(`SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'${tableName};'`);
 		const output: Record<string, ColumnInfo> = {};
 		for(const entry of data as Record<string, string>[]) {
 			output[entry["name"]] = {

@@ -5,6 +5,9 @@ import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
 import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions";
 
 class TestSql extends DefaultSql {
+    public changeForeignKeysState(): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
 	public override async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 		return {};
 	}
@@ -16,8 +19,9 @@ class TestSql extends DefaultSql {
 
 describe("DefaultSql", () => {
 	const mockAccess: DatabaseAccess = {
-		runGetStatement: vi.fn(),
-		runMultipleWriteStatements: vi.fn(),
+		runReadStatement: vi.fn(),
+		runWriteStatement: vi.fn(),
+		runTransaction: vi.fn(),
 	};
 	const mockDialect = new TestSql(mockAccess);
 	

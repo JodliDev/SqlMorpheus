@@ -21,7 +21,7 @@ export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseI
 		await dialect.setChanges(migration.fromVersion, dbInstructions.version, migration.changes);
 		
 		await db.createBackup?.(`from_${migration.fromVersion}_to_${dbInstructions.version}`);
-		await db.runMultipleWriteStatements(migration.changes.up);
+		await db.runTransaction(migration.changes.up);
 	}
 }
 
@@ -43,7 +43,7 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 		}
 		Logger.debug(changes.down);
 		
-		await db.runMultipleWriteStatements(changes.down);
+		await db.runTransaction(changes.down);
 		dbInstructions.version = changes.fromVersion;
 		
 		version = changes.fromVersion;

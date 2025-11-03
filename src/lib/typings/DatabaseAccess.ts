@@ -1,5 +1,6 @@
 export interface DatabaseAccess {
 	createBackup?(backupName: string): Promise<void>;
-	runGetStatement(query: string): Promise<unknown>
-	runMultipleWriteStatements(query: string): Promise<void>
+	runReadStatement(query: string): Promise<unknown>
+	runWriteStatement(query: string): Promise<void>
+	runTransaction(query: string): Promise<void>
 }

@@ -28,12 +28,12 @@ export default class SqliteDialect extends DefaultSql {
 	}
 	
 	public async getTableNames(): Promise<string[]> {
-		return (await this.db.runGetStatement("SELECT name FROM sqlite_master WHERE type = 'table'") as Record<string, string>[])
+		return (await this.db.runReadStatement("SELECT name FROM sqlite_master WHERE type = 'table'") as Record<string, string>[])
 			.map((obj) => obj.name);
 	}
 	
 	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
-		const data = await this.db.runGetStatement(`PRAGMA table_info(${tableName})`) as Record<string, string>[];
+		const data = await this.db.runReadStatement(`PRAGMA table_info(${tableName})`) as Record<string, string>[];
 		const output: Record<string, ColumnInfo> = {};
 		
 		for(const entry of data) {
@@ -64,7 +64,7 @@ export default class SqliteDialect extends DefaultSql {
 	}
 	
 	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-		const data = await this.db.runGetStatement(`PRAGMA foreign_key_list(${tableName});`);
+		const data = await this.db.runReadStatement(`PRAGMA foreign_key_list(${tableName});`);
 		return (data as Record<string, string>[]).map(entry => {
 			return {
 				fromTable: tableName,
@@ -78,17 +78,17 @@ export default class SqliteDialect extends DefaultSql {
 	}
 	
 	public async setChanges(fromVersion: number, toVersion: number, changes: SqlChanges): Promise<void> {
-		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${toVersion};`);
+		await this.db.runTransaction(`PRAGMA user_version = ${toVersion};`);
 		await super.setChanges(fromVersion, toVersion, changes);
 	}
 	
 	public async getVersion(): Promise<number> {
-		const output = await this.db.runGetStatement(`PRAGMA user_version;`) as [{user_version: number}];
+		const output = await this.db.runReadStatement(`PRAGMA user_version;`) as [{user_version: number}];
 		
 		return output[0].user_version as number;
 	}
 	public async rollbackHistory(toVersion: number): Promise<void> {
-		await this.db.runMultipleWriteStatements(`PRAGMA user_version = ${toVersion};`);
+		await this.db.runTransaction(`PRAGMA user_version = ${toVersion};`);
 		await super.rollbackHistory(toVersion);
 	}
 }

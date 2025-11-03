@@ -11,6 +11,9 @@ import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations";
 
 class DefaultDialect extends DefaultSql {
+    public changeForeignKeysState(enabled: boolean): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
 	getColumnInformation(_: string): Promise<Record<string, ColumnInfo>> {
 		return Promise.resolve({});
 	}
@@ -27,8 +30,9 @@ class DefaultDialect extends DefaultSql {
 describe("MigrationManager", () => {
 	const mockDb: DatabaseAccess = {
 		createBackup: vi.fn(),
-		runGetStatement: vi.fn(() => Promise.resolve([])),
-		runMultipleWriteStatements: vi.fn(),
+		runReadStatement: vi.fn(() => Promise.resolve([])),
+		runWriteStatement: vi.fn(() => Promise.resolve()),
+		runTransaction: vi.fn(),
 	};
 	let mockDialect: DefaultDialect
 	

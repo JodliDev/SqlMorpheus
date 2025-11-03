@@ -313,7 +313,7 @@ export default abstract class DefaultSql {
 	 * @return A promise that resolves when the migration table is created successfully.
 	 */
 	protected async createMigrationTableIfNeeded(): Promise<void> {
-		await this.db.runMultipleWriteStatements(this.migrationTableQuery());
+		await this.db.runTransaction(this.migrationTableQuery());
 	}
 	
 	/**
@@ -331,7 +331,7 @@ export default abstract class DefaultSql {
 	public async getVersion(): Promise<number> {
 		await this.createMigrationTableIfNeeded();
 		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], undefined, "toVersion DESC");
-		const data = await this.db.runGetStatement(query) as {toVersion: number}[];
+		const data = await this.db.runReadStatement(query) as {toVersion: number}[];
 		return data.length ? data[0].toVersion : 0;
 	}
 	
@@ -345,13 +345,13 @@ export default abstract class DefaultSql {
 	public async rollbackHistory(toVersion: number): Promise<void> {
 		const query = `${this.migrationTableQuery()}; DELETE FROM ${MIGRATION_DATA_TABLE_NAME} WHERE toVersion > ${toVersion};`;
 		
-		await this.db.runMultipleWriteStatements(query);
+		await this.db.runTransaction(query);
 	}
 	
 	public async getChanges(version: number): Promise<(SqlChanges & {fromVersion: number}) | null> {
 		await this.createMigrationTableIfNeeded();
 		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["fromVersion", "upChanges", "downChanges"], `toVersion = ${version}`);
-		const data = await this.db.runGetStatement(query) as {upChanges: string, downChanges: string, fromVersion: number}[];
+		const data = await this.db.runReadStatement(query) as {upChanges: string, downChanges: string, fromVersion: number}[];
 		
 		return data ? {up: data[0].upChanges, down: data[0].downChanges, fromVersion: data[0].fromVersion} : null;
 	}
@@ -359,7 +359,7 @@ export default abstract class DefaultSql {
 	public async hasChanges(version: number) {
 		await this.createMigrationTableIfNeeded();
 		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], `toVersion = ${version}`);
-		const data = await this.db.runGetStatement(query) as {toVersion: number}[];
+		const data = await this.db.runReadStatement(query) as {toVersion: number}[];
 		
 		return !!data.length;
 	}
@@ -380,6 +380,6 @@ export default abstract class DefaultSql {
 			: `INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (fromVersion, toVersion, upChanges, downChanges) VALUES ('${fromVersion}', '${toVersion}', ${upChanges}, ${downChanges})`
 		}`;
 		
-		await this.db.runMultipleWriteStatements(query);
+		await this.db.runTransaction(query);
 	}
 }

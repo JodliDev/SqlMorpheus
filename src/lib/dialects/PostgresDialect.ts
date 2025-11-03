@@ -18,11 +18,11 @@ export default class PostgresDialect extends DefaultSql {
 	}
 	
 	public async getTableNames(): Promise<string[]> {
-		return await this.db.runGetStatement("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';") as string[];
+		return await this.db.runReadStatement("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';") as string[];
 	}
 	
 	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
-		const data = await this.db.runGetStatement(`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}';`);
+		const data = await this.db.runReadStatement(`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${tableName}';`);
 		
 		const output: Record<string, ColumnInfo> = {};
 		for(const entry of data as Record<string, string>[]) {

@@ -57,7 +57,7 @@ export default class MySqlDialect extends DefaultSql {
 	}
 	
 	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-		const data = await this.db.runGetStatement(`SELECT
+		const data = await this.db.runReadStatement(`SELECT
 				info.TABLE_NAME, info.COLUMN_NAME, info.REFERENCED_TABLE_NAME, info.REFERENCED_COLUMN_NAME, constr.UPDATE_RULE, constr.DELETE_RULE
 			FROM information_schema.KEY_COLUMN_USAGE AS info INNER JOIN information_schema.REFERENTIAL_CONSTRAINTS AS constr ON info.CONSTRAINT_NAME = constr.CONSTRAINT_NAME
 			WHERE info.REFERENCED_TABLE_SCHEMA = (SELECT DATABASE()) AND info.TABLE_NAME = '${tableName}';`
@@ -76,12 +76,12 @@ export default class MySqlDialect extends DefaultSql {
 	
 	public async getTableNames(): Promise<string[]> {
 		// const entries = await this.db.runGetStatement("SELECT table_name, table_schema  FROM information_schema.tables;") as Record<string, string>[]
-		const entries = await this.db.runGetStatement("SHOW TABLES") as Record<string, string>[]
+		const entries = await this.db.runReadStatement("SHOW TABLES") as Record<string, string>[]
 		return entries.map(entry => Object.values(entry)[0]);
 	}
 	
 	public async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
-		const data = await this.db.runGetStatement(`SHOW COLUMNS FROM ${tableName};`) as Record<string, string>[];
+		const data = await this.db.runReadStatement(`SHOW COLUMNS FROM ${tableName};`) as Record<string, string>[];
 		const output: Record<string, ColumnInfo> = {};
 		for(const entry of data) {
 			const sqlType = entry["Type"].toUpperCase();

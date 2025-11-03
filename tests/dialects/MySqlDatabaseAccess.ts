@@ -9,12 +9,16 @@ export class MySqlDatabaseAccess implements DatabaseAccess {
 		this.db = connection;
 	}
 	
-	public async runGetStatement(query: string): Promise<any[]> {
+	public async runReadStatement(query: string): Promise<any[]> {
 		const [results, _fields] = await this.db.query(query);
 		return results as any[];
 	}
 	
-	public async runMultipleWriteStatements(query: string): Promise<void> {
+	public async runWriteStatement(query: string): Promise<void> {
+		await this.db.query(query);
+	}
+	
+	public async runTransaction(query: string): Promise<void> {
 		try {
 			await this.db.beginTransaction();
 			await this.db.query(query);
