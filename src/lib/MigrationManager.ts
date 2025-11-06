@@ -68,6 +68,7 @@ export class MigrationManager {
 		//Run pre-migrations:
 		const preSQL = dbInstructions.preMigration?.(
 			this.migrations,
+			this.dialect.db,
 			fromVersion,
 			toVersion,
 		);
@@ -92,7 +93,9 @@ export class MigrationManager {
 		else {
 			Logger.log(`Creating migration SQL from version ${fromVersion} to ${toVersion}`);
 			
-			this.existingTables = (await this.dialect.getTableNames()).filter(oldTableName => oldTableName != MIGRATION_DATA_TABLE_NAME).map(oldTableName => this.migrations.getNewestTableName(oldTableName));
+			this.existingTables = (await this.dialect.getTableNames())
+				.filter(oldTableName => oldTableName != MIGRATION_DATA_TABLE_NAME)
+				.map(oldTableName => this.migrations.getNewestTableName(oldTableName));
 			
 			[
 				this.renameTables(),
@@ -108,7 +111,7 @@ export class MigrationManager {
 		}
 		
 		//Run post-migrations:
-		const postSql = dbInstructions.postMigration?.(fromVersion, toVersion);
+		const postSql = dbInstructions.postMigration?.(this.dialect.db, fromVersion, toVersion);
 		if(postSql) {
 			changes.up += `\n\n-- Custom SQL from postMigration()\n${postSql.up}`;
 			changes.down += `\n\n-- Custom SQL from postMigration()\n${postSql.down}`;

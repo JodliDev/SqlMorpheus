@@ -22,6 +22,10 @@ describe("TableStructureGenerator", () => {
 			dateTime: "DATETIME",
 		};
 		
+		public changeForeignKeysState(): Promise<void> {
+			throw new Error("Method not implemented.");
+		}
+		
 		getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 			return Promise.resolve({});
 		}

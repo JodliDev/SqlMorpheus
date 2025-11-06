@@ -3,6 +3,7 @@ import {PublicMigrations} from "../Migrations";
 import {SqlChanges} from "./SqlChanges";
 import {TableObjInput} from "../tableInfo/TableObj";
 import {AllowedMigrations} from "./AllowedMigrations";
+import {DatabaseAccess} from "./DatabaseAccess";
 
 export type TableInput = TableObjInput | Class<TableClassInterface>;
 
@@ -17,19 +18,21 @@ export default interface DatabaseInstructions {
 	
 	/**
 	 * Custom migrations that will run before any database changes are applied.
-	 * @param migrations The migration object that will be validated after this.
-	 * @param fromVersion Version of the current database.
-	 * @param toVersion Version of the database after update.
+	 * @param migrations - The migration object that will be validated after this.
+	 * @param dbAccess - The database access object to interact with the database.
+	 * @param fromVersion - Version of the current database.
+	 * @param toVersion - Version of the database after update.
 	 * @return custom SQL that should be executed before migrations are executed.
 	 */
-	preMigration?(migrations: PublicMigrations, fromVersion: number, toVersion: number): SqlChanges | void;
+	preMigration?(migrations: PublicMigrations, dbAccess: DatabaseAccess, fromVersion: number, toVersion: number): SqlChanges | void;
 	
 	/**
 	 * Custom migrations that will run after database changes have been applied (but before the transaction is finished)
-	 * @param fromVersion Version of the current database.
-	 * @param toVersion Version of the database after update.
-	 * @return custom SQL that should be executed before migrations are executed.
+	 * @param dbAccess - The database access object to interact with the database.
+	 * @param fromVersion - Version of the current database.
+	 * @param toVersion - Version of the database after update.
+	 * @return custom SQL that should be executed after migrations were executed.
 	 */
-	postMigration?(fromVersion: number, toVersion: number): SqlChanges;
+	postMigration?(dbAccess: DatabaseAccess, fromVersion: number, toVersion: number): SqlChanges;
 }
 

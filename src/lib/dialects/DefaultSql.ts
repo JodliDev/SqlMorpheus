@@ -13,7 +13,7 @@ export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
  * Needs a {@link DatabaseAccess} object for database operations
  */
 export default abstract class DefaultSql {
-	protected readonly db: DatabaseAccess;
+	public readonly db: DatabaseAccess;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	public canInspectForeignKeys: boolean = false;
