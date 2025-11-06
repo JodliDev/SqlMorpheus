@@ -53,7 +53,7 @@ describe("Integration tests", () => {
 		delete (users as TableObj<any>).tableStructure.columns.username;
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameColumn(2, users, "username", "displayName");
+			migrations.renameColumn(2, "Users", "username", "displayName");
 		};
 		
 		await runMigration(access, instructions);
@@ -125,8 +125,8 @@ describe("Integration tests", () => {
 			// Modify foreign key constraint
 			instructions.version = 2;
 			instructions.preMigration = (migrations: PublicMigrations) => {
-				migrations.allowMigration(2, items, "alterForeignKey", "categoryId");
-				migrations.allowMigration(2, items, "recreateTable"); //sqlite cannot alter foreign keys
+				migrations.allowMigration(2, "Items", "alterForeignKey", "categoryId");
+				migrations.allowMigration(2, "Items", "recreateTable"); //sqlite cannot alter foreign keys
 			}
 			(items as TableObj<any>).tableStructure.foreignKeys![0].onDelete = "SET NULL";
 			
@@ -174,7 +174,7 @@ describe("Integration tests", () => {
 		instructions.tables = [tasks];
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameTable(2, "old_tasks", tasks);
+			migrations.renameTable(2, "old_tasks", "tasks");
 		};
 		
 		await runMigration(access, instructions);
@@ -225,7 +225,7 @@ describe("Integration tests", () => {
 				departmentName: "" // renamed
 			}).primaryKey("id"),
 			
-			TableObj.create("employees", {
+			TableObj.create("NewEmployees", {
 				id: 0,
 				name: "",
 				// firstName: "",
@@ -246,12 +246,13 @@ describe("Integration tests", () => {
 				.foreignKey("employeeId", employees, "id", {onDelete: "CASCADE"})
 		];
 		
-		instructions.version = 2;
+		instructions.version = 3;
 		
 		instructions.preMigration = (migrations: PublicMigrations) => {
-			migrations.renameColumn(2, departments, "name", "departmentName");
-			migrations.renameColumn(2, employees, "managerId", "supervisorId");
-			migrations.allowMigration(2, employees, "removeForeignKey", "managerId");
+			migrations.renameColumn(2, "departments", "name", "departmentName");
+			migrations.renameColumn(2, "employees", "managerId", "supervisorId");
+			migrations.renameTable(2, "employees", "NewEmployees");
+			migrations.allowMigration(3, "NewEmployees", "removeForeignKey", "managerId");
 		};
 		
 		await runMigration(access, instructions);
@@ -263,7 +264,10 @@ describe("Integration tests", () => {
 		const departmentColumns = await access.runReadStatement("PRAGMA table_info(departments)");
 		expect(departmentColumns).toHaveLength(2); // id, departmentName, location
 		
-		const employeeColumns = await access.runReadStatement("PRAGMA table_info(employees)");
+		const oldEmployeeColumns = await access.runReadStatement("PRAGMA table_info(employees)");
+		expect(oldEmployeeColumns).toHaveLength(0); // should not exist any more
+		
+		const employeeColumns = await access.runReadStatement("PRAGMA table_info(NewEmployees)");
 		expect(employeeColumns).toHaveLength(4); // id, fullName, departmentId, supervisorId
 	});
 });

@@ -93,8 +93,8 @@ describe("MigrationManager", () => {
 			const result = await manager.generateSqlChanges({...mockDbInstructions, version: 1});
 			
 			
-			expect(result?.changes.up).toEqual(`${mockResult.up}\n\n`);
-			expect(result?.changes.down).toEqual(`${mockResult.down}\n\n`);
+			expect(result?.changes.up).toEqual(mockResult.up);
+			expect(result?.changes.down).toEqual(mockResult.down);
 		});
 		
 		it("should generate migration SQL if version increases", async() => {
@@ -127,7 +127,7 @@ describe("MigrationManager", () => {
 		const tableA = TableObj.create("TableA", {newColumnA: ""});
 		mockDbInstructions.tables = [tableA];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.renameColumn(2, tableA, "oldColumnA", "newColumnA");
+			migrations.renameColumn(2, "TableA", "oldColumnA", "newColumnA");
 		}
 		
 		//alter dialect:
@@ -152,10 +152,9 @@ describe("MigrationManager", () => {
 	
 	it("should throw if not allowed", async() => {
 		//alter DatabaseInstructions:
-		const tableA = TableObj.create("TableA", {newColumnA: ""});
 		mockDbInstructions.tables = [];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.allowMigration(2, tableA, "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
+			migrations.allowMigration(2, "TableA", "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
 		}
 		
 		//alter dialect:
@@ -184,7 +183,7 @@ describe("MigrationManager", () => {
 		const tableA = TableObj.create("TableA", {newColumnA: ""});
 		mockDbInstructions.tables = [tableA];
 		mockDbInstructions.preMigration = (migrations) => {
-			migrations.renameColumn(2, tableA, "oldColumnA", "newColumnA");
+			migrations.renameColumn(2, "TableA", "oldColumnA", "newColumnA");
 		}
 		
 		//alter dialect:

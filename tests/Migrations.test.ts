@@ -134,38 +134,44 @@ describe("Migrations", () => {
 	describe("recreateTable", () => {
 		it("should mark a table for recreation if the version is relevant", () => {
 			dbInstructions.version = 5;
-			const table = {name: "testTable"};
+			const tableName = "testTable";
 			migrations.reset(dbInstructions, 3);
 			
-			migrations.recreateTable(4, table);
+			migrations.recreateTable(4, tableName);
 			
-			expect(migrations.willBeRecreated(table.name)).toBe(true);
+			expect(migrations.willBeRecreated(tableName)).toBe(true);
 		});
 		
 		it("should not mark a table for recreation if the version is not relevant", () => {
 			dbInstructions.version = 5;
-			const table = {name: "testTable"};
+			const tableName = "testTable";
 			migrations.reset(dbInstructions, 3);
 			
-			migrations.recreateTable(2, table);
+			migrations.recreateTable(2, tableName);
 			
-			expect(migrations.willBeRecreated(table.name)).toBe(undefined);
+			expect(migrations.willBeRecreated(tableName)).toBe(undefined);
 		});
 	});
 	
 	describe("renameTable", () => {
 		it("should rename a table if the version is relevant", () => {
 			migrations.reset(dbInstructions, 3);
-			migrations.renameTable(4, "oldTableName", {name: "newTableName"});
+			migrations.renameTable(4, "oldTableName", "newTableName1");
+			migrations.renameTable(4, "newTableName1", "newTableName2");
+			migrations.renameTable(4, "newTableName2", "newTableName3");
+			migrations.renameTable(4, "newTableName3", "newTableName4");
 			
-			expect(migrations.getNewestTableName("oldTableName")).toBe("newTableName");
+			expect(migrations.getNewestTableName("oldTableName")).toBe("newTableName4");
+			expect(migrations.getNewestTableName("newTableName1")).toBe("newTableName4");
+			expect(migrations.getNewestTableName("newTableName2")).toBe("newTableName4");
+			expect(migrations.getNewestTableName("newTableName3")).toBe("newTableName4");
 		});
 	});
 	
 	describe("renameColumn", () => {
 		it("should rename a column if the version is relevant", () => {
 			migrations.reset(dbInstructions, 3);
-			migrations.renameColumn(4, {name: "testTable"}, "oldColumn", "newColumn");
+			migrations.renameColumn(4, "testTable", "oldColumn", "newColumn");
 			
 			expect(migrations.getNewestColumnName("testTable", "oldColumn")).toBe("newColumn");
 		});

@@ -1,8 +1,7 @@
 import MigrationInstructions from "./typings/MigrationInstructions";
 import MigrationNotAllowedException from "./exceptions/NotAllowedException";
-import DatabaseInstructions, {TableInput} from "./typings/DatabaseInstructions";
+import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {TableStructure} from "./typings/TableStructure";
-import TableObj from "./tableInfo/TableObj";
 import {Logger} from "./Logger";
 import {ALLOWED, AllowedMigrations, NO_COLUMN, USED} from "./typings/AllowedMigrations";
 
@@ -44,18 +43,6 @@ export class Migrations {
 	
 	/**
 	 * Retrieves the migration instructions for the specified table.
-	 * @see getEntryFromTableName
-	 *
-	 * @param table - The {@link TableInput} object from which the table name will be retrieved.
-	 * @return The migration instructions corresponding to the given table input.
-	 */
-	private getEntry(table: TableInput): MigrationInstructions {
-		const tableName = this.getTableName(table);
-		return this.getEntryFromTableName(tableName);
-	}
-	
-	/**
-	 * Retrieves the migration instructions for the specified table.
 	 *
 	 * @param tableName - The name of the table for which the entry is to be retrieved or created.
 	 * @return The migration instructions corresponding to the given table input.
@@ -69,16 +56,6 @@ export class Migrations {
 			};
 		}
 		return this.migrationData[tableName];
-	}
-	
-	/**
-	 * Retrieves the table name from the given table input.
-	 *
-	 * @param table - The {@link TableInput} object.
-	 * @return The name of the table derived from either {@link TableObj} or a class.
-	 */
-	private getTableName(table: TableInput): string {
-		return TableObj.isTableObj(table) ? table.tableName : table.name;
 	}
 	
 	
@@ -124,7 +101,7 @@ export class Migrations {
 					return new Error(`You set table "${tableName}" to be renamed to a different name than the one in your structure (${migrationEntry.tableRenaming.newName})!`);
 				}
 				else if(!newTables[tableName]) {
-					return new Error(`You set table "${migrationEntry.tableRenaming}" migrations for "${tableName}". But "${tableName}" does not exist in your structure.`);
+					return new Error(`You set migrations for "${tableName}". But "${tableName}" does not exist in your structure.`);
 				}
 			}
 			
@@ -281,7 +258,7 @@ export class Migrations {
 	public internalRecreate(tableName: string, reason: string): void {
 		const entry = this.getEntryFromTableName(tableName);
 		entry.recreate = true;
-		Logger.log(`Table ${tableName} will be recreated(${reason})!`);
+		Logger.log(`Table ${tableName} will be recreated (${reason})!`);
 	}
 	
 	
@@ -292,17 +269,17 @@ export class Migrations {
 	 * This method will be ignored if {@link version} is smaller than the current database version or higher than the target version of {@link DatabaseInstructions}.
 	 *
 	 * @param version - The target version for which the specific migration is allowed. Must be provided to make sure this method will only have an effect when specified.
-	 * @param table - Either a {@link TableObj} or a class decorated with @TableClass.
+	 * @param tableName - The current table name in the database at the time of the migration version.
 	 * @param allowedMigration - The keys representing the migrations to be allowed.
 	 * @param column - The column name for which the migration is allowed. Only needed for "dropColumn", "removeForeignKey" and "alterForeignKey".
 	 *
 	 * @throws Error if the provided column name is not valid for the specified migration.
 	 */
-	public allowMigration(version: number, table: TableInput, allowedMigration: keyof AllowedMigrations, column?: string): void {
+	public allowMigration(version: number, tableName: string, allowedMigration: keyof AllowedMigrations, column?: string): void {
 		if(!this.versionIsRelevant(version)) {
 			return;
 		}
-		const entry = this.getEntry(table);
+		const entry = this.getEntryFromTableName(tableName);
 		
 		if(!entry.allowedMigrations[allowedMigration]) {
 			entry.allowedMigrations[allowedMigration] = {};
@@ -335,24 +312,26 @@ export class Migrations {
 	 * This method will be ignored if {@link version} is smaller than the current database version or higher than the target version of {@link DatabaseInstructions}.
 	 *
 	 * @param version - The target version for which the table should be renamed. Must be provided to make sure this method will only have an effect when specified.
-	 * @param oldTableName - The current name in the database at the time of the migration.
-	 * @param newTableName - The new table name or its equivalent input format.
+	 * @param oldTableName - The current name in the database at the time of the migration version.
+	 * @param newTableName - The new table name at the time of the migration version.
 	 */
-	public renameTable(version: number, oldTableName: string, newTableName: TableInput): void {
+	public renameTable(version: number, oldTableName: string, newTableName: string): void {
 		if(!this.versionIsRelevant(version)) {
 			return;
 		}
-		const newTableNameString = this.getTableName(newTableName);
-		
+		if(this.migrationData.hasOwnProperty(oldTableName)) {
+			this.migrationData[newTableName] = this.migrationData[oldTableName];
+			delete this.migrationData[oldTableName];
+		}
 		//add data for renaming:
-		const entry = this.getEntry(newTableName);
+		const entry = this.getEntryFromTableName(newTableName);
 		this.migrationDataForOldTableNames[oldTableName] = entry;
 		
 		if(!entry.tableRenaming) {
-			entry.tableRenaming = {oldName: oldTableName, newName: newTableNameString};
+			entry.tableRenaming = {oldName: oldTableName, newName: newTableName};
 		}
 		else //we only care about the oldest (=current) table name
-			entry.tableRenaming.newName = newTableNameString;
+			entry.tableRenaming.newName = newTableName;
 	}
 	
 	/**
@@ -362,15 +341,15 @@ export class Migrations {
 	 * This method will be ignored if {@link version} is smaller than the current database version or higher than the target version of {@link DatabaseInstructions}.
 	 *
 	 * @param version - The target version for which the table should be renamed. Must be provided to make sure this method will only have an effect when specified.
-	 * @param table Either a {@link TableObj} or a class decorated with @TableClass containing the column to be renamed.
+	 * @param tableName - The current table name in the database at the time of the migration version.
 	 * @param oldColumn The current name in the database at the time of the migration.
 	 * @param newColumn The new name to assign to the column.
 	 */
-	public renameColumn(version: number, table: TableInput, oldColumn: string, newColumn: string): void {
+	public renameColumn(version: number, tableName: string, oldColumn: string, newColumn: string): void {
 		if(!this.versionIsRelevant(version)) {
 			return;
 		}
-		const entry = this.getEntry(table);
+		const entry = this.getEntryFromTableName(tableName);
 		const existingColumnEntry = entry.renamedColumns.find((entry) => entry.newName == oldColumn);
 		
 		if(existingColumnEntry) {
@@ -388,16 +367,16 @@ export class Migrations {
 	 * This method will be ignored if {@link version} is smaller than the current database version or higher than the target version of {@link DatabaseInstructions}.
 	 *
 	 * @param version - The target version for which the table should be renamed. Must be provided to make sure this method will only have an effect when specified.
-	 * @param table Either a {@link TableObj} or a class decorated with @TableClass.
+	 * @param tableName - The current table name in the database at the time of the migration version.
 	 */
-	public recreateTable(version: number, table: TableInput): void {
+	public recreateTable(version: number, tableName: string): void {
 		if(!this.versionIsRelevant(version)) {
 			return;
 		}
-		const entry = this.getEntry(table);
+		const entry = this.getEntryFromTableName(tableName);
 		entry.recreate = true;
-		Logger.log(`Table ${this.getTableName(table)} will be recreated!`);
-		this.allowMigration(version, table, "recreateTable");
+		Logger.log(`Table ${tableName} will be recreated!`);
+		this.allowMigration(version, tableName, "recreateTable");
 	}
 }
 
