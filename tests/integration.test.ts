@@ -1,7 +1,7 @@
 // noinspection SqlResolve
 
 import {describe, expect, beforeEach, it} from "vitest";
-import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
+import DatabaseInstructions, {TableInput} from "../src/lib/typings/DatabaseInstructions";
 import {runMigration, PublicMigrations, SqlChanges} from "../src";
 import TableObj from "../src/lib/tableInfo/TableObj";
 import {SqliteDatabaseAccess} from "./dialects/SqliteDatabaseAccess";
@@ -17,15 +17,15 @@ describe("Integration tests", () => {
 	
 	it("should rename a column", async () => {
 		const users = TableObj.create("Users", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			username: "",
 			email: ""
-		}).primaryKey("id");
+		});
 		
 		// Initial table structure
 		const instructions = {
 			dialect: "Sqlite",
-			tables: [users],
+			tables: [users] as TableInput[],
 			version: 1,
 			configPath,
 			throwIfNotAllowed: true,
@@ -67,10 +67,10 @@ describe("Integration tests", () => {
 	
 	it("should modify primary key", async () => {
 		const products = TableObj.create("Products", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			sku: "",
 			name: ""
-		}).primaryKey("id");
+		});
 		
 		// Initial structure with 'id' as primary key
 		const instructions = {
@@ -86,7 +86,11 @@ describe("Integration tests", () => {
 		
 		// Change primary key to 'sku'
 		instructions.version = 2;
-		(products as TableObj<any>).primaryKey("sku");
+		instructions.tables = [TableObj.create("Products", {
+			id: 0,
+			sku: ["", {primaryKey: true}],
+			name: ""
+		})];
 		
 		await runMigration(access, instructions);
 		
@@ -99,15 +103,15 @@ describe("Integration tests", () => {
 	describe("foreign key tests", () => {
 		it("should add and modify foreign keys", async () => {
 			const categories = TableObj.create("Categories", {
-				id: 0,
+				id: [0, {primaryKey: true}],
 				name: ""
-			}).primaryKey("id");
+			});
 			
 			const items = TableObj.create("Items", {
-				id: 0,
+				id: [0, {primaryKey: true}],
 				name: "",
 				categoryId: 0
-			}).primaryKey("id")
+			})
 				.foreignKey("categoryId", categories, "id", {onDelete: "CASCADE"});
 			
 			// Initial structure with two tables
@@ -140,16 +144,16 @@ describe("Integration tests", () => {
 	
 	it("should rename a table", async () => {
 		const oldTasks = TableObj.create("old_tasks", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			title: "",
 			completed: false
-		}).primaryKey("id");
+		});
 		
 		const tasks = TableObj.create("tasks", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			title: "",
 			completed: false
-		}).primaryKey("id");
+		});
 		
 		// Initial structure
 		const instructions: DatabaseInstructions = {
@@ -188,17 +192,17 @@ describe("Integration tests", () => {
 	
 	it("should do complex schema changes", async () => {
 		const departments = TableObj.create("departments", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			name: ""
-		}).primaryKey("id");
+		});
 		
 		const employees = TableObj.create("employees", {
-			id: 0,
+			id: [0, {primaryKey: true}],
 			firstName: "",
 			lastName: "",
 			departmentId: 0,
 			managerId: 0
-		}).primaryKey("id")
+		})
 			.foreignKey("departmentId", departments, "id", {onDelete: "CASCADE"});
 		employees.foreignKey("managerId", employees, "id");
 		
@@ -219,32 +223,32 @@ describe("Integration tests", () => {
 		
 		instructions.tables = [
 			TableObj.create("departments", {
-				id: 0,
+				id: [0, {primaryKey: true}],
 				// name: "",
 				location: "", // added
 				departmentName: "" // renamed
-			}).primaryKey("id"),
+			}),
 			
 			TableObj.create("NewEmployees", {
-				id: 0,
+				id: [0, {primaryKey: true}],
 				name: "",
 				// firstName: "",
 				// lastName: "",
 				supervisorId: 0,
 				departmentId: 0,
 				// managerId: 0
-			}).primaryKey("id")
+			})
 				.foreignKey("departmentId", departments, "id", {onDelete: "SET NULL"}), // modified onDelete
 			
 			// added table:
 			TableObj.create("employees_history", {
-				id: 0,
+				id: [0, {primaryKey: true}],
 				employeeId: 0,
 				changeDate: "",
 				changeType: ""
-			}).primaryKey("id")
+			})
 				.foreignKey("employeeId", employees, "id", {onDelete: "CASCADE"})
-		];
+		] as any;
 		
 		instructions.version = 3;
 		

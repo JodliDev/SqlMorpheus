@@ -5,11 +5,10 @@ describe("TableObj", () => {
 	describe("create", () => {
 		it("should create a new TableObj instance", () => {
 			const columns = {id: 5, name: "a string"};
-			const table = TableObj.create("users", columns) as TableObj<any>;
+			const table = TableObj.create("users", columns) as any as TableObj<any>;
 			
 			expect(table).toBeInstanceOf(TableObj);
 			expect(table.tableName).toBe("users");
-			console.log(table.tableStructure)
 			expect(table.tableStructure.columns).toHaveProperty("id");
 			expect(table.tableStructure.columns["id"].inputDefaultValue).toEqual(5);
 			expect(table.tableStructure.columns["id"].inputType).toEqual("number");
@@ -21,9 +20,7 @@ describe("TableObj", () => {
 	
 	describe("primaryKey", () => {
 		it("should set the primary key for the table", () => {
-			const columns = {id: "number", name: "string"};
-			const table = TableObj.create("users", columns)
-				.primaryKey("id");
+			const table = TableObj.create("users", {id: ["number", {primaryKey: true}], name: "string"});
 			
 			expect((table as TableObj<any>).tableStructure.primaryKey).toBe("id");
 		});
@@ -53,9 +50,7 @@ describe("TableObj", () => {
 	
 	describe("maxLength", () => {
 		it("should define max length for a column", () => {
-			const columns = {id: "number", name: "string"};
-			const table = TableObj.create("users", columns)
-				.maxCharacterLength("id", 6);
+			const table = TableObj.create("users", {id: ["number", {maxCharacterLength: 6}], name: "string"});
 			
 			expect((table as TableObj<any>).tableStructure.columns["id"].maxLength).toBe(6);
 		});
@@ -63,23 +58,9 @@ describe("TableObj", () => {
 	
 	describe("dataType", () => {
 		it("should define a data type for a column", () => {
-			const columns = {id: "number", name: "string"};
-			const table = TableObj.create("users", columns)
-				.dataType("id", "number");
+			const table = TableObj.create("users", {id: ["number", {dataType: "number"}], name: "string"});
 			
 			expect((table as TableObj<any>).tableStructure.columns["id"].inputType).toBe("number");
-		});
-	});
-	
-	describe("isDbTable", () => {
-		it("should return true for a valid TableObj instance", () => {
-			const table = TableObj.create("users", {});
-			expect(TableObj.isTableObj(table)).toBe(true);
-		});
-		
-		it("should return false for an invalid object", () => {
-			const invalidObject = {someKey: "someValue"};
-			expect(TableObj.isTableObj(invalidObject)).toBe(false);
 		});
 	});
 });

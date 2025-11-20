@@ -1,7 +1,7 @@
 import {Class, TableClassInterface} from "../../typings/TableClassInterface";
 import "polyfill-symbol-metadata";
-import TableObj from "../TableObj";
-import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure";
+import {TableObjHelper} from "../TableObjHelper"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 /**
  * Decorator function to configure a database table with its name and primary key.
@@ -29,7 +29,7 @@ export default function TableClass<T extends TableClassInterface>(tableName: str
 		for(const key in obj) {
 			const value = obj[key as keyof Class<T>];
 			const existingEntry = tableStructure.columns[key];
-			const defaultEntry = TableObj.getColumnEntry(key, value);
+			const defaultEntry = TableObjHelper.getColumnEntry(key, value);
 			if(!defaultEntry)
 				continue;
 			if(key == primaryKey)

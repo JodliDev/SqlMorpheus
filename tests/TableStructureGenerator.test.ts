@@ -85,22 +85,18 @@ describe("TableStructureGenerator", () => {
 	}
 	function generateStructureFromObject() {
 		const House = TableObj.create("House", {
-			houseId: BigInt(3),
+			houseId: [BigInt(3), {primaryKey: true}],
 			address: "address",
-			description: "",
+			description: ["", {dataType: "text"}],
 			stories: 0,
-			ownerName: null,
-			builtAt: new Date(1712111880000),
+			ownerName: [null, {dataType: "string"}],
+			builtAt: [new Date(1712111880000), {dataType: "dateTime"}],
 			inhabitants: BigInt(0),
 			hasInternet: true,
-		})
-			.primaryKey("houseId")
-			.dataType("description", "text")
-			.dataType("ownerName", "string")
-			.dataType("builtAt", "dateTime");
+		});
 		
 		const Car = TableObj.create("Car", {
-			carId: BigInt(5),
+			carId: [BigInt(5), {primaryKey: true}],
 			belongsTo: BigInt(1),
 			isSimilarTo: BigInt(9),
 			electric: false,
@@ -108,7 +104,6 @@ describe("TableStructureGenerator", () => {
 			km: 10,
 			lastUsed: new Date(602303880000)
 		})
-			.primaryKey("carId")
 			.foreignKey("belongsTo", House, "houseId", {onUpdate: "SET DEFAULT", onDelete: "SET NULL"});
 		Car.foreignKey("isSimilarTo", Car, "carId");
 		

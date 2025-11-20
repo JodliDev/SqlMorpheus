@@ -1,15 +1,18 @@
 import {ForeignKeyActions} from "../typings/ForeignKeyInfo";
 import {DataTypeOptions} from "./DataTypeOptions";
-import {Logger} from "../Logger";
 import {InputTableStructure} from "../typings/InputTableStructure";
 import {InputColumnInfo} from "../typings/InputColumnInfo";
+import {AllowedTypes, TableObjHelper} from "./TableObjHelper";
 
-type DataFormat = Record<string, unknown>;
-type GetColumns<T> = T extends TableObjBuilderDefinition<infer Item, any> ? Item : never;
-type TableObjBuilderDefinition<T extends DataFormat, TPick extends keyof TableObj<T>> =  Pick<TableObj<T>, TPick>;
-type NewTableObjBuilder<T extends DataFormat> = TableObjBuilderDefinition<T, "primaryKey" | "foreignKey" | "dataType" | "maxCharacterLength">;
-type TableObjBuilder<T extends DataFormat> = TableObjBuilderDefinition<T, "foreignKey" | "dataType" | "maxCharacterLength">;
-export type TableObjInput = TableObjBuilderDefinition<any, any>;
+interface ColumnOptions {
+	primaryKey?: boolean;
+	dataType?: DataTypeOptions;
+	maxCharacterLength?: number;
+}
+type DataFormat = Record<string, AllowedTypes | [AllowedTypes, ColumnOptions]>;
+type GetColumns<T> = T extends PublicTableObj<infer Item> ? Item : never;
+type PublicTableObj<T extends DataFormat> = Pick<TableObj<T>, "foreignKey">;
+export type TableObjInput = PublicTableObj<DataFormat>;
 
 /**
  * Use this class to define tables for DatabaseInstructions
@@ -27,72 +30,62 @@ export default class TableObj<T extends DataFormat> {
 		foreignKeys: [],
 	};
 	
-	
-	public static getEmptyColumnEntry(key: string): InputColumnInfo {
-		return {
-			name: key,
-			sqlType: "",
-			defaultValue: "",
-			isPrimaryKey: false
-		}
-	}
-	
-	public static getColumnEntry(key: string, value: unknown): InputColumnInfo | null {
-		let dataType: DataTypeOptions = typeof value as DataTypeOptions;
-		switch(typeof value) {
-			case "function":
-				return null;
-			case "object":
-				if(value instanceof Date) {
-					dataType = "date";
-					break;
-				}
-				else if(value !== null) {
-					Logger.warn(`${key} was skipped because its type (${typeof value}) is not supported`);
-					return null;
-				}
-				dataType = "string";
-				break;
-			case "undefined":
-			case "symbol":
-				Logger.warn(`${key} was skipped because its type (${typeof value}) is not supported`);
-				return null;
-		}
-		
-		return {
-			...TableObj.getEmptyColumnEntry(key),
-			inputType: dataType,
-			inputDefaultValue: value,
-		}
-	}
-	
 	private constructor(tableName: string, defaultValues: T) {
+		const addColumnEntry = (key: string, value: AllowedTypes) => {
+			const columnEntry = TableObjHelper.getColumnEntry(key, value);
+			if(!columnEntry) {
+				return
+			}
+			this.tableStructure.columns[key] = columnEntry;
+			return columnEntry;
+		}
 		this.tableName = tableName;
 		this.tableStructure.table = tableName;
 		
 		for(const key in defaultValues) {
-			const value = defaultValues[key as keyof T];
-			const columnEntry = TableObj.getColumnEntry(key, value);
-			if(!columnEntry)
-				continue;
-			this.tableStructure.columns[key] = columnEntry;
+			const content = defaultValues[key as keyof T];
+			if(Array.isArray(content)) {
+				const [value, options] = content;
+				const columnEntry = addColumnEntry(key, value);
+				
+				if(columnEntry) {
+					this.applyOptions(columnEntry, options);
+				}
+			}
+			else {
+				addColumnEntry(key, content);
+			}
+		}
+	}
+	private applyOptions(entry: InputColumnInfo, options: ColumnOptions) {
+		for(const keyString in options) {
+			const key = keyString as keyof ColumnOptions
+			switch(key) {
+				case "primaryKey":
+					if(this.tableStructure.primaryKey) {
+						this.tableStructure.columns[this.tableStructure.primaryKey].isPrimaryKey = false;
+					}
+					this.tableStructure.primaryKey = entry.name;
+					entry.isPrimaryKey = true;
+					break;
+				case "dataType":
+					entry.inputType = options[key];
+					break;
+				case "maxCharacterLength":
+					entry.maxLength = options[key];
+					break;
+				default:
+					throw new Error(`Unsupported option "${key}" for ${this.tableName}.${entry.name}`);
+			}
 		}
 	}
 	
-	public primaryKey(key: keyof T): TableObjBuilder<T>  {
-		if(this.tableStructure.primaryKey) {
-			this.tableStructure.columns[this.tableStructure.primaryKey].isPrimaryKey = false;
-		}
-		this.tableStructure.primaryKey = key.toString();
-		this.tableStructure.columns[key.toString()].isPrimaryKey = true;
-		return this;
-	}
-	public foreignKey<TOther extends TableObjBuilderDefinition<DataFormat, any>>(
+	public foreignKey<TOther extends Partial<TableObj<DataFormat>>>(
 		fromColumn: keyof T,
 		toTable: TOther,
 		toColumn: keyof GetColumns<TOther>,
 		options?: {onUpdate?: ForeignKeyActions, onDelete?: ForeignKeyActions}
-	): TableObjBuilder<T>  {
+	): PublicTableObj<T>  {
 		this.tableStructure.foreignKeys!.push({
 			fromTable: this.tableName,
 			fromColumn: fromColumn.toString(),
@@ -103,21 +96,8 @@ export default class TableObj<T extends DataFormat> {
 		});
 		return this;
 	}
-	public dataType(column: keyof T, type: DataTypeOptions): TableObjBuilder<T> {
-		this.tableStructure.columns[column.toString()].inputType = type;
-		return this;
-	}
 	
-	public maxCharacterLength(column: keyof T, max: number): TableObjBuilder<T> {
-		this.tableStructure.columns[column.toString()].maxLength = max;
-		return this;
-	}
-	
-	public static create<T extends Record<string, unknown>>(tableName: string, columns: T): NewTableObjBuilder<T> {
+	public static create<T extends DataFormat>(tableName: string, columns: T): PublicTableObj<T> {
 		return new TableObj<T>(tableName, columns);
-	}
-	
-	public static isTableObj(obj: unknown): obj is TableObj<any> {
-		return !!(obj as TableObj<any>)?.IS_TABLE_OBJ
 	}
 }

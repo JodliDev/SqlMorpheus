@@ -2,10 +2,10 @@ import {TableClassInterface, Class} from "./typings/TableClassInterface";
 import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {TableStructure} from "./typings/TableStructure";
 import DefaultSql from "./dialects/DefaultSql";
-import TableObj from "./tableInfo/TableObj";
 
 import {getTableStructure} from "./tableInfo/getTableStructure";
 import {InputTableStructure} from "./typings/InputTableStructure";
+import {TableObjHelper} from "./tableInfo/TableObjHelper";
 
 /**
  * Represents a generator for creating table structures based on specified database instructions
@@ -29,7 +29,7 @@ export default class TableStructureGenerator {
 		
 		for(const table of this.dbInstructions.tables) {
 			let structure: InputTableStructure;
-			if(TableObj.isTableObj(table)) {
+			if(TableObjHelper.isTableObj(table)) {
 				structure = table.tableStructure;
 				tables[table.tableName] = table.tableStructure;
 			}

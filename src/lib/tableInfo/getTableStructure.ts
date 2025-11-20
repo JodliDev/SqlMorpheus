@@ -1,8 +1,8 @@
 import {InputColumnInfo} from "../typings/InputColumnInfo";
-import TableObj from "./TableObj";
 import {InputTableStructure} from "../typings/InputTableStructure";
 import {TableStructure} from "../typings/TableStructure";
 import {Class, TableClassInterface} from "../typings/TableClassInterface";
+import {TableObjHelper} from "./TableObjHelper";
 
 export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 
@@ -10,7 +10,7 @@ export function getInputColumnInfo(table: any, context: any): InputColumnInfo {
 	const metadata = context?.metadata ? getTableStructureFromMetadata(context.metadata) : getTableStructure(table);
 	const key = context.name ?? context;
 	if(!metadata.columns.hasOwnProperty(key))
-		metadata.columns[key] = TableObj.getEmptyColumnEntry(key);
+		metadata.columns[key] = TableObjHelper.getEmptyColumnEntry(key);
 	
 	return metadata.columns[key];
 }
