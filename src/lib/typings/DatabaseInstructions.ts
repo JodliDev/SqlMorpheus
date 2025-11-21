@@ -11,7 +11,6 @@ export default interface DatabaseInstructions {
 	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres";
 	tables: TableInput[];
 	version: number;
-	configPath: string;
 	throwIfNotAllowed: boolean;
 	loggerMode?: "silent" | "noLog" | "normal" | "debug";
 	alwaysAllowedMigrations?: (keyof AllowedMigrations)[];

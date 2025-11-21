@@ -42,7 +42,6 @@ describe("MigrationManager", () => {
 		mockDbInstructions = {
 			dialect: "Sqlite",
 			version: 1,
-			configPath: `${process.cwd()}/config/`,
 			tables: [],
 			throwIfNotAllowed: true,
 			preMigration: vi.fn(),

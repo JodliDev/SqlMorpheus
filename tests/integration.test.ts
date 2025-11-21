@@ -7,7 +7,6 @@ import TableObj from "../src/lib/tableInfo/TableObj";
 import {SqliteDatabaseAccess} from "./dialects/SqliteDatabaseAccess";
 
 describe("Integration tests", () => {
-	const configPath = `${process.cwd()}/config/`;
 	let access: SqliteDatabaseAccess;
 	
 	beforeEach(() => {
@@ -27,7 +26,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [users] as TableInput[],
 			version: 1,
-			configPath,
 			throwIfNotAllowed: true,
 			preMigration(_: PublicMigrations): SqlChanges | void {}
 		} satisfies DatabaseInstructions;
@@ -77,7 +75,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [products],
 			version: 1,
-			configPath,
 			throwIfNotAllowed: true,
 			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable"]
 		} satisfies DatabaseInstructions;
@@ -119,7 +116,6 @@ describe("Integration tests", () => {
 				dialect: "Sqlite",
 				tables: [categories, items],
 				version: 1,
-				configPath,
 				throwIfNotAllowed: true,
 				preMigration(_: PublicMigrations): SqlChanges | void {}
 			} satisfies DatabaseInstructions;
@@ -160,7 +156,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [oldTasks],
 			version: 1,
-			configPath,
 			throwIfNotAllowed: true
 		};
 		
@@ -211,7 +206,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [departments, employees],
 			version: 1,
-			configPath,
 			throwIfNotAllowed: true,
 			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable", "alterForeignKey"]
 		};

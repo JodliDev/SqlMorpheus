@@ -74,7 +74,6 @@ describe("TableStructureGenerator", () => {
 			dialect: "Sqlite",
 			tables: [HouseClass, CarClass],
 			version: 1,
-			configPath: ":memory:",
 			throwIfNotAllowed: true,
 		} satisfies DatabaseInstructions;
 		
@@ -111,7 +110,6 @@ describe("TableStructureGenerator", () => {
 			dialect: "Sqlite",
 			tables: [House, Car],
 			version: 1,
-			configPath: ":memory:",
 			throwIfNotAllowed: true,
 		} satisfies DatabaseInstructions;
 		

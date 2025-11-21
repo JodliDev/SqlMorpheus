@@ -14,8 +14,7 @@ describe("Migrations", () => {
 			alwaysAllowedMigrations: [],
 			throwIfNotAllowed: true,
 			dialect: "Sqlite",
-			tables: [],
-			configPath: `${process.cwd()}/config/`,
+			tables: []
 		};
 		migrations = new Migrations();
 	});
