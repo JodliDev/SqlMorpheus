@@ -4,6 +4,7 @@ import {SqlChanges} from "./SqlChanges";
 import {TableObjInput} from "../tableInfo/TableObj";
 import {AllowedMigrations} from "./AllowedMigrations";
 import {DatabaseAccess} from "./DatabaseAccess";
+import {LoggerMode} from "../Logger";
 
 export type TableInput = TableObjInput | Class<TableClassInterface>;
 
@@ -12,7 +13,7 @@ export default interface DatabaseInstructions {
 	tables: TableInput[];
 	version: number;
 	throwIfNotAllowed: boolean;
-	loggerMode?: "silent" | "noLog" | "normal" | "debug";
+	loggerMode?: LoggerMode;
 	alwaysAllowedMigrations?: (keyof AllowedMigrations)[];
 	
 	/**

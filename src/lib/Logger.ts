@@ -1,4 +1,4 @@
-export type LoggerMode = "silent" | "noLog" | "normal" | "debug";
+export type LoggerMode = "silent" | "error" | "warn" | "log" | "debug";
 
 
 /**
@@ -7,25 +7,31 @@ export type LoggerMode = "silent" | "noLog" | "normal" | "debug";
  * It allows controlling the verbosity of logs based on the mode.
  */
 class LoggerClass {
-	mode: LoggerMode = "normal";
+	mode: LoggerMode = "log";
 	
 	setMode(mode?: LoggerMode) {
-		this.mode = mode ?? "normal";
+		this.mode = mode ?? "log";
 	}
 	
 	debug(text: string) {
-		if(this.mode == "debug")
-			console.log(text);
+		if(this.mode == "debug") {
+			console.debug(`\x1b[90m${(new Date()).toLocaleTimeString()}\x1b[0m ${text}`);
+		}
 	}
 	log(text: string) {
-		if(this.mode == "silent" || this.mode == "noLog")
-			return;
-		console.log(text);
+		if(this.mode == "log" || this.mode == "debug") {
+			console.log(`\x1b[90m${(new Date()).toLocaleTimeString()}\x1b[0m ${text}`);
+		}
 	}
 	warn(text: string) {
-		if(this.mode == "silent")
-			return;
-		console.warn(text);
+		if(this.mode == "warn" || this.mode == "log" || this.mode == "debug") {
+			console.warn(`\x1b[90m${(new Date()).toLocaleTimeString()}\x1b[0m ${text}`);
+		}
+	}
+	error(text: string) {
+		if(this.mode == "error" || this.mode == "warn" || this.mode == "log" || this.mode == "debug") {
+			console.error(`\x1b[90m${(new Date()).toLocaleTimeString()}\x1b[0m ${text}`);
+		}
 	}
 }
 
