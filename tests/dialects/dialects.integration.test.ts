@@ -2,26 +2,71 @@ import {afterEach, beforeEach, describe, expect, it} from "vitest";
 import SqliteDialect from "../../src/lib/dialects/SqliteDialect";
 import {afterAll} from "@vitest/runner";
 import MySqlDialect from "../../src/lib/dialects/MySqlDialect";
-import {MySqlDatabaseAccess} from "./MySqlDatabaseAccess";
-import {SqliteDatabaseAccess} from "./SqliteDatabaseAccess";
 import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
+import {MySqlContainer} from "@testcontainers/mysql";
+import {DatabaseAccess} from "../../src";
+import BetterSqlite3 from "better-sqlite3";
+import mysql from "mysql2/promise";
+
+export function createSQLiteAccess(): DatabaseAccess {
+	const db = new BetterSqlite3(":memory:");
+	return {
+		runReadStatement: async (query: string) => db.prepare(query).all(),
+		runWriteStatement: async (query: string) => db.prepare(query).run(),
+		runTransaction: async (query: string) => {
+			const transaction = db.transaction(() => db.exec(query));
+			transaction();
+		}
+	}
+}
 
 describe.each([
-	{type: "Sqlite", createDb: async () => {
-		const databaseAccess = new SqliteDatabaseAccess();
-		const sqlDialect = new SqliteDialect(databaseAccess);
-		return {databaseAccess: databaseAccess, sqlDialect: sqlDialect};
+	{type: "SQLite", createDb: async () => {
+		const db = new BetterSqlite3(":memory:");
+		const dbAccess = createSQLiteAccess();
+		const sqlDialect = new SqliteDialect(dbAccess);
+		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: db.close};
 	}},
 	{type: "MySql", createDb: async () => {
-		const databaseAccess = await MySqlDatabaseAccess.create();
-		const sqlDialect = new MySqlDialect(databaseAccess);
-		return {databaseAccess: databaseAccess, sqlDialect: sqlDialect};
+		const container = await new MySqlContainer("mysql").start();
+		
+		const db = await mysql.createConnection({
+			host: container.getHost(),
+			port: container.getPort(),
+			database: container.getDatabase(),
+			user: container.getUsername(),
+			password: container.getUserPassword(),
+			multipleStatements : true,
+		});
+		await db.connect();
+		
+		const dbAccess: DatabaseAccess = {
+			runReadStatement: async (query: string) => {
+				const [results, _fields] = await db.query(query);
+				return results as any[];
+			},
+			runWriteStatement: async (query: string) => await db.query(query),
+			runTransaction: async (query: string) => {
+				try {
+					await db.beginTransaction();
+					await db.query(query);
+					await db.commit();
+				}
+				catch(e) {
+					await db.rollback();
+					throw e;
+				}
+			}
+		}
+		
+		const sqlDialect = new MySqlDialect(dbAccess);
+		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: db.destroy};
 	}}
 ])("Integration Tests: $type", async ({createDb}) => {
-	const {databaseAccess, sqlDialect} = await createDb();
+	const {databaseAccess, sqlDialect, close} = await createDb();
 	
 	afterAll(() => {
-		databaseAccess.close();
+		close();
 	});
 	
 	describe("createTable", () => {

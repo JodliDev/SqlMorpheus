@@ -2,15 +2,15 @@
 
 import {describe, expect, beforeEach, it} from "vitest";
 import DatabaseInstructions, {TableInput} from "../src/lib/typings/DatabaseInstructions";
-import {runMigration, PublicMigrations, SqlChanges} from "../src";
+import {runMigration, PublicMigrations, SqlChanges, DatabaseAccess} from "../src";
 import TableObj from "../src/lib/tableInfo/TableObj";
-import {SqliteDatabaseAccess} from "./dialects/SqliteDatabaseAccess";
+import {createSQLiteAccess} from "./dialects/dialects.integration.test";
 
 describe("Integration tests", () => {
-	let access: SqliteDatabaseAccess;
+	let access: DatabaseAccess;
 	
 	beforeEach(() => {
-		access = new SqliteDatabaseAccess();
+		access = createSQLiteAccess();
 	});
 	
 	
