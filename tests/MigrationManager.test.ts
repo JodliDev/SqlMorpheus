@@ -43,7 +43,6 @@ describe("MigrationManager", () => {
 			dialect: "Sqlite",
 			version: 1,
 			tables: [],
-			throwIfNotAllowed: true,
 			preMigration: vi.fn(),
 			postMigration: vi.fn(),
 		};

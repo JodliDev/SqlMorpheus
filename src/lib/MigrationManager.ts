@@ -123,7 +123,7 @@ export class MigrationManager {
 			if(exception) {
 				Logger.debug(`\nCanceled changes:\n${changes.up}\n`);
 				
-				if(dbInstructions.throwIfNotAllowed)
+				if(!dbInstructions.doNotThrowIfNotAllowed)
 					throw exception;
 				else {
 					console.error(exception.message);

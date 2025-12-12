@@ -12,8 +12,23 @@ export default interface DatabaseInstructions {
 	dialect: "Sqlite" | "MsSql" | "MySql" | "Postgres";
 	tables: TableInput[];
 	version: number;
-	throwIfNotAllowed: boolean;
+	/**
+	 * Usually SqlMorpheus throws an exception if it needs to execute a destructive database change and is not explicitly confirmed in
+	 * (using `allowMigration()` in `preMigration()`).
+	 * if true, no exception will be thrown and an error message will be logged to the console instead.
+	 */
+	doNotThrowIfNotAllowed?: boolean;
+	
+	/**
+	 * Defines how much should be logged to the console.
+	 */
 	loggerMode?: LoggerMode;
+	
+	/**
+	 * Usually SqlMorpheus throws an exception if it needs to execute a destructive database change and is not explicitly allowed to do so
+	 * (using `allowMigration()` in `preMigration()`).
+	 * if defined, the confirmation will be skipped for each migration type defined in `alwaysAllowedMigrations`.
+	 */
 	alwaysAllowedMigrations?: (keyof AllowedMigrations)[];
 	
 	/**

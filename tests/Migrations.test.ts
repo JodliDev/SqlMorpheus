@@ -12,7 +12,6 @@ describe("Migrations", () => {
 		dbInstructions = {
 			version: 5,
 			alwaysAllowedMigrations: [],
-			throwIfNotAllowed: true,
 			dialect: "Sqlite",
 			tables: []
 		};

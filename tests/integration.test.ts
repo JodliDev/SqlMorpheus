@@ -26,7 +26,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [users] as TableInput[],
 			version: 1,
-			throwIfNotAllowed: true,
 			preMigration(_: PublicMigrations): SqlChanges | void {}
 		} satisfies DatabaseInstructions;
 		
@@ -75,7 +74,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [products],
 			version: 1,
-			throwIfNotAllowed: true,
 			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable"]
 		} satisfies DatabaseInstructions;
 		
@@ -116,7 +114,6 @@ describe("Integration tests", () => {
 				dialect: "Sqlite",
 				tables: [categories, items],
 				version: 1,
-				throwIfNotAllowed: true,
 				preMigration(_: PublicMigrations): SqlChanges | void {}
 			} satisfies DatabaseInstructions;
 			
@@ -156,7 +153,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [oldTasks],
 			version: 1,
-			throwIfNotAllowed: true
 		};
 		
 		await runMigration(access, instructions);
@@ -206,7 +202,6 @@ describe("Integration tests", () => {
 			dialect: "Sqlite",
 			tables: [departments, employees],
 			version: 1,
-			throwIfNotAllowed: true,
 			alwaysAllowedMigrations: ["alterPrimaryKey", "recreateTable", "alterForeignKey"]
 		};
 		
