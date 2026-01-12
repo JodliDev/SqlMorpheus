@@ -18,6 +18,7 @@ export default class SqliteDialect extends DefaultSql {
 		time: "INTEGER",
 		dateTime: "INTEGER",
 	};
+	public canAlterColumnStructure: boolean = false;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	

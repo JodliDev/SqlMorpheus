@@ -4,6 +4,7 @@ import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
 export default class MySqlDialect extends DefaultSql {
+	public canAlterColumnStructure: boolean = true;
 	public canAlterForeignKeys: boolean = true;
 	public canAlterPrimaryKey: boolean = true;
 	
@@ -35,6 +36,11 @@ export default class MySqlDialect extends DefaultSql {
 			default:
 				return super.getSqlType(dataType, columnInfo);
 		}
+	}
+	public alterColumnStructure(tableName: string, columnName: string, sqlType: string, defaultValue?: string): string {
+		const typeQuery = `ALTER TABLE ${tableName} MODIFY COLUMN ${columnName} ${sqlType}`;
+		return defaultValue ? `${typeQuery} DEFAULT ${defaultValue}` : `${typeQuery}; ALTER TABLE ${tableName} ALTER ${columnName} DROP DEFAULT;`;
+		
 	}
 	public async changeForeignKeysState(enabled: boolean): Promise<void> {
 		if(enabled) {

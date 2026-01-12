@@ -439,6 +439,10 @@ export class MigrationManager {
 					changes.up += this.dialect.createColumn(tableName, this.dialect.columnDefinition(newColumn.name, newColumn.sqlType, newColumn.isPrimaryKey, newColumn.defaultValue)) + "\n";
 					changes.down += this.dialect.dropColumn(tableName, newColumn.name) + "\n";
 				}
+				else if(this.dialect.canAlterColumnStructure) {
+					changes.up += this.dialect.alterColumnStructure(tableName, newColumn.name, newColumn.sqlType, newColumn.defaultValue);
+					changes.down += this.dialect.alterColumnStructure(tableName, oldColumn.name, oldColumn.sqlType, oldColumn.defaultValue);
+				}
 				else if(newColumn.sqlType != oldColumn.sqlType || newColumn.defaultValue != oldColumn.defaultValue) {
 					this.migrations.internalRecreate(newTableDefinition.table, "Table structure was changed");
 				}

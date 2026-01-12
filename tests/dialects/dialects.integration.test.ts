@@ -179,6 +179,28 @@ describe.each([
 				id: {name: "id", sqlType: sqlDialect.getSqlType("number"), defaultValue: sqlDialect.nullType, isPrimaryKey: true}
 			});
 		});
+		it("alterColumnStructure", async() => {
+			if(!sqlDialect.canAlterColumnStructure) {
+				console.log("alterColumnStructure is not supported by this dialect. Skipping test.")
+				return;
+			}
+			
+			// Change column type and add default value
+			await databaseAccess.runTransaction(sqlDialect.alterColumnStructure("users", "id", sqlDialect.types.bigint, "6"));
+			
+			expect(await sqlDialect.getColumnInformation("users")).toEqual({
+				id: {name: "id", sqlType: sqlDialect.getSqlType("bigint"), defaultValue: "6", isPrimaryKey: true},
+				name: {name: "name", sqlType: sqlDialect.getSqlType("text"), defaultValue: sqlDialect.nullType, isPrimaryKey: false}
+			});
+			
+			// Remove column default value
+			await databaseAccess.runTransaction(sqlDialect.alterColumnStructure("users", "id", sqlDialect.types.bigint, undefined));
+			
+			expect(await sqlDialect.getColumnInformation("users")).toEqual({
+				id: {name: "id", sqlType: sqlDialect.getSqlType("bigint"), defaultValue: sqlDialect.nullType, isPrimaryKey: true},
+				name: {name: "name", sqlType: sqlDialect.getSqlType("text"), defaultValue: sqlDialect.nullType, isPrimaryKey: false}
+			});
+		});
 	});
 	
 	describe("Query Operations", () => {

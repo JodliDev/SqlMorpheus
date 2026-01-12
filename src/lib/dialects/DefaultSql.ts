@@ -14,6 +14,7 @@ export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
  */
 export default abstract class DefaultSql {
 	public readonly db: DatabaseAccess;
+	public canAlterColumnStructure: boolean = false;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	
@@ -66,6 +67,20 @@ export default abstract class DefaultSql {
 	
 	public getSqlType(dataType: DataTypeOptions, _?: ColumnInfo): string {
 		return this.types[dataType];
+	}
+	
+	/**
+	 * Changes the column type and the default value of a column in a specified table.
+	 * Is only used if {@link canAlterColumnStructure} is true.
+	 *
+	 * @param tableName - The name of the table containing the column to be altered.
+	 * @param columnName - The name of the column to be altered.
+	 * @param sqlType - The new data type (specific to the SQL dialect) for the column.
+	 * @param defaultValue - The new default value for the column.
+	 * @return The SQL statement as a string.
+	 */
+	public alterColumnStructure(tableName: string, columnName: string, sqlType: string, defaultValue?: string): string {
+		throw new Error("Altering column structure is not supported. Recreate the table instead!");
 	}
 	
 	/**
