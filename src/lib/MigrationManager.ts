@@ -187,9 +187,7 @@ export class MigrationManager {
 				const dbTableName = this.migrations.getOldTableName(tableName);
 				
 				changes.up += `${this.dialect.dropTable(tableName)}\n`;
-				changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
-					? this.createTableSql(tableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName))
-					: "\n\n-- Cannot recreate foreign keys or load primary keys with this database! Table will not be recreated!\n";
+				changes.down += this.createTableSql(tableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName));
 			}
 		}
 		
@@ -280,11 +278,9 @@ export class MigrationManager {
 				+ "\n\n"
 			
 			const dbTableName = this.migrations.getOldTableName(tableName);
-			changes.down += this.dialect.canInspectForeignKeys && this.dialect.canInspectPrimaryKey
-				? this.createTableSql(backupTableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName))
+			changes.down += this.createTableSql(backupTableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName))
 				+ "\n"
-				+ moveDataQuery
-				: "\n\n-- Cannot recreate foreign keys or load primary keys with this database! Table will not be recreated!\n";
+				+ moveDataQuery;
 		}
 		
 		return changes;
@@ -400,7 +396,7 @@ export class MigrationManager {
 			const newTableDefinition = this.newTables[tableName];
 			
 			const oldColumnList = await this.dialect.getColumnInformation(this.migrations.getOldTableName(tableName));
-			const oldPrimaryKey = this.dialect.canInspectPrimaryKey ? this.getPrimaryKeyColumn(oldColumnList) : false;
+			const oldPrimaryKey = this.getPrimaryKeyColumn(oldColumnList) ;
 			const oldColumnNewNameIndex: Record<string, ColumnInfo> = {};
 			for(const key in oldColumnList) {
 				oldColumnNewNameIndex[this.migrations.getNewestColumnName(tableName, key)] = oldColumnList[key];
@@ -410,7 +406,7 @@ export class MigrationManager {
 			const newPrimaryKey = newTableDefinition.primaryKey;
 			
 			//Search for changed primary key:
-			if(this.dialect.canInspectPrimaryKey && oldPrimaryKey != newPrimaryKey) {
+			if(oldPrimaryKey != newPrimaryKey) {
 				Logger.log(`Primary key in ${tableName} will be changed from ${oldPrimaryKey} to ${newPrimaryKey}!`);
 				this.migrations.compareWithAllowedMigration(tableName, "alterPrimaryKey");
 				if(this.dialect.canAlterPrimaryKey) {

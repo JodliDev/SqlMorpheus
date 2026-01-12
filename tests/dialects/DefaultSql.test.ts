@@ -3,11 +3,15 @@ import DefaultSql from "../../src/lib/dialects/DefaultSql";
 import {DatabaseAccess} from "../../src";
 import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
 import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions";
+import { ForeignKeyInfo } from "../../src/lib/typings/ForeignKeyInfo";
 
 class TestSql extends DefaultSql {
     public changeForeignKeysState(): Promise<void> {
-        throw new Error("Method not implemented.");
+        throw new Error("changeForeignKeysState() is not implemented.");
     }
+	public getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
+		throw new Error("getForeignKeys() is not implemented.");
+	}
 	public override async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 		return {};
 	}

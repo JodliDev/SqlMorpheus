@@ -6,8 +6,6 @@ import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 export default class MySqlDialect extends DefaultSql {
 	public canAlterForeignKeys: boolean = true;
 	public canAlterPrimaryKey: boolean = true;
-	public canInspectForeignKeys: boolean = true;
-	public canInspectPrimaryKey: boolean = true;
 	
 	
 	public types = {

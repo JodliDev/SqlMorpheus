@@ -16,8 +16,6 @@ export default abstract class DefaultSql {
 	public readonly db: DatabaseAccess;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
-	public canInspectForeignKeys: boolean = false;
-	public canInspectPrimaryKey: boolean = false;
 	
 	protected types = {
 		text: "TEXT",
@@ -295,14 +293,11 @@ export default abstract class DefaultSql {
 	
 	/**
 	 * Fetches the foreign keys for the specified table.
-	 * This method is only used if {@link canInspectForeignKeys} is true
 	 *
 	 * @param tableName - The name of the table for which to retrieve foreign key information.
 	 * @return {Promise<ForeignKeyInfo[]>} A promise that resolves to an array of {@link ForeignKeyInfo}.
 	 */
-	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-		throw new Error("Inspecting foreign keys is not supported!");
-	}
+	public abstract getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]>;
 	
 	/**
 	 * Ensures that the migration table exists in the database.

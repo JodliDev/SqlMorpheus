@@ -5,8 +5,6 @@ import {ColumnInfo} from "../typings/ColumnInfo";
 export default class MsSqlDialect extends DefaultSql {
 	public canAlterForeignKeys: boolean = true;
 	public canAlterPrimaryKey: boolean = true;
-	public canInspectForeignKeys: boolean = true;
-	public canInspectPrimaryKey: boolean = false;
 	
 	public async changeForeignKeysState(enabled: boolean): Promise<void> {
 		if(enabled) {

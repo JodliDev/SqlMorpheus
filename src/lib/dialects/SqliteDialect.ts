@@ -20,8 +20,6 @@ export default class SqliteDialect extends DefaultSql {
 	};
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
-	public canInspectForeignKeys: boolean = true;
-	public canInspectPrimaryKey: boolean = true;
 	
 	public async changeForeignKeysState(enabled: boolean): Promise<void> {
 		if(enabled) {
