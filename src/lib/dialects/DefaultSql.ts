@@ -60,6 +60,10 @@ export default abstract class DefaultSql {
 		}
 	}
 	
+	public formatIdentifier(identifier: string): string {
+		return identifier;
+	}
+	
 	public getSqlType(dataType: DataTypeOptions, _?: ColumnInfo): string {
 		return this.types[dataType];
 	}
@@ -133,7 +137,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL string representing the foreign key constraint.
 	 */
 	public foreignKey(column: string, foreignTable: string, foreignColumn: string, onUpdate?: string, onDelete?: string): string {
-		let query = `FOREIGN KEY (${column}) REFERENCES ${foreignTable} (${foreignColumn})`;
+		let query = `FOREIGN KEY (${this.formatIdentifier(column)}) REFERENCES ${this.formatIdentifier(foreignTable)} (${this.formatIdentifier(foreignColumn)})`;
 		
 		if(onUpdate)
 			query += ` ON UPDATE ${onUpdate}`
@@ -151,7 +155,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public createTable(tableName: string, entries: string[]): string {
-		return `CREATE TABLE IF NOT EXISTS ${tableName}  (\n\t${entries.join(",\n\t")}\n);`;
+		return `CREATE TABLE IF NOT EXISTS ${this.formatIdentifier(tableName)} (\n\t${entries.join(",\n\t")}\n);`;
 	}
 	
 	/**
@@ -162,7 +166,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public renameTable(tableName: string, newTableName: string): string {
-		return `ALTER TABLE ${tableName} RENAME TO ${newTableName};`;
+		return `ALTER TABLE ${this.formatIdentifier(tableName)} RENAME TO ${this.formatIdentifier(newTableName)};`;
 	}
 	
 	/**
@@ -172,7 +176,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public dropTable(tableName: string): string {
-		return `DROP TABLE IF EXISTS ${tableName};`
+		return `DROP TABLE IF EXISTS ${this.formatIdentifier(tableName)};`
 	}
 	
 	/**
@@ -185,7 +189,7 @@ export default abstract class DefaultSql {
 	 * @return The constructed SQL column definition string.
 	 */
 	public columnDefinition(columnName: string, type: string, isPrimaryKey: boolean, defaultValue?: string): string {
-		const query = `${columnName} ${type}${defaultValue ? ` DEFAULT ${defaultValue}` : ""}`;
+		const query = `${this.formatIdentifier(columnName)} ${type}${defaultValue ? ` DEFAULT ${defaultValue}` : ""}`;
 		return isPrimaryKey ? `${query} PRIMARY KEY` : query;
 	}
 	
@@ -197,7 +201,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public createColumn(columnTable: string, entry: string): string {
-		return `ALTER TABLE ${columnTable} ADD ${entry};`
+		return `ALTER TABLE ${this.formatIdentifier(columnTable)} ADD ${entry};`
 	}
 	
 	/**
@@ -209,7 +213,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public renameColumn(tableName: string, oldColumnName: string, newColumnName: string): string {
-		return `ALTER TABLE ${tableName} RENAME COLUMN ${oldColumnName} TO ${newColumnName};`
+		return `ALTER TABLE ${this.formatIdentifier(tableName)} RENAME COLUMN ${this.formatIdentifier(oldColumnName)} TO ${this.formatIdentifier(newColumnName)};`
 	}
 	
 	/**
@@ -220,7 +224,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public dropColumn(tableName: string, columnName: string): string {
-		return `ALTER TABLE ${tableName} DROP COLUMN ${columnName};`
+		return `ALTER TABLE ${this.formatIdentifier(tableName)} DROP COLUMN ${this.formatIdentifier(columnName)};`
 	}
 	
 	/**
@@ -233,7 +237,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public select(tableName: string, select: string[], where?: string, orderBy?: string): string {
-		let query = `SELECT ${select.join(",")} FROM ${tableName}`
+		let query = `SELECT ${select.map(k => this.formatIdentifier(k)).join(",")} FROM ${this.formatIdentifier(tableName)}`
 		
 		if(where) {
 			query += ` WHERE ${where}`
@@ -253,7 +257,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public insert(tableName: string, content: string): string {
-		return `INSERT INTO ${tableName} ${content};`;
+		return `INSERT INTO ${this.formatIdentifier(tableName)} ${content};`;
 	}
 	
 	/**
@@ -265,7 +269,7 @@ export default abstract class DefaultSql {
 	 * @return The SQL statement as a string.
 	 */
 	public insertValues(keys: string[], valueString?: string) {
-		return `(${keys}) ${valueString ?? `VALUES (${keys.map(() => "?").join(",")})`}`;
+		return `(${keys.map(k => this.formatIdentifier(k)).join(",")}) ${valueString ?? `VALUES (${keys.map(() => "?").join(",")})`}`;
 	}
 	
 	/**
@@ -323,7 +327,7 @@ export default abstract class DefaultSql {
 	 */
 	public async getVersion(): Promise<number> {
 		await this.createMigrationTableIfNeeded();
-		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], undefined, "toVersion DESC");
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], undefined, `${this.formatIdentifier("toVersion")} DESC`);
 		const data = await this.db.runReadStatement(query) as {toVersion: number}[];
 		return data.length ? data[0].toVersion : 0;
 	}
@@ -351,7 +355,7 @@ export default abstract class DefaultSql {
 	
 	public async hasChanges(version: number) {
 		await this.createMigrationTableIfNeeded();
-		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], `toVersion = ${version}`);
+		const query = this.select(MIGRATION_DATA_TABLE_NAME, ["toVersion"], `${this.formatIdentifier("toVersion")} = ${version}`);
 		const data = await this.db.runReadStatement(query) as {toVersion: number}[];
 		
 		return !!data.length;
@@ -369,8 +373,19 @@ export default abstract class DefaultSql {
 		const upChanges = escapeString(changes.up);
 		
 		const query = `${this.migrationTableQuery()} ${await this.hasChanges(toVersion)
-			? `UPDATE ${MIGRATION_DATA_TABLE_NAME} SET fromVersion = '${fromVersion}', upChanges = ${upChanges}, downChanges = ${downChanges} WHERE toVersion = '${toVersion}';`
-			: `INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (fromVersion, toVersion, upChanges, downChanges) VALUES ('${fromVersion}', '${toVersion}', ${upChanges}, ${downChanges})`
+			? `UPDATE ${MIGRATION_DATA_TABLE_NAME}
+				SET
+				    ${this.formatIdentifier("fromVersion")} = '${fromVersion}',
+			   	    ${this.formatIdentifier("upChanges")} = ${upChanges},
+			   	    ${this.formatIdentifier("downChanges")} = ${downChanges}
+			   	WHERE ${this.formatIdentifier("toVersion")} = '${toVersion}';`
+			: `INSERT INTO ${MIGRATION_DATA_TABLE_NAME} (
+					${this.formatIdentifier("fromVersion")},
+    				${this.formatIdentifier("toVersion")},
+					${this.formatIdentifier("upChanges")},
+					${this.formatIdentifier("downChanges")}
+				)
+				VALUES ('${fromVersion}', '${toVersion}', ${upChanges}, ${downChanges})`
 		}`;
 		
 		await this.db.runTransaction(query);

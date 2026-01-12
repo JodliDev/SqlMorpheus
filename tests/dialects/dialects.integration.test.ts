@@ -284,7 +284,7 @@ describe.each([
 			).rejects.toThrow();
 			
 			// Remove parent entry
-			await databaseAccess.runTransaction("DELETE FROM ParentTable WHERE id = 1");
+			await databaseAccess.runTransaction(`DELETE FROM ${sqlDialect.formatIdentifier("ParentTable")} WHERE id = 1`);
 			
 			// Verify parent entry being removed
 			const resultParent = await databaseAccess.runReadStatement(
