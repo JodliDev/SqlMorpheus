@@ -9,7 +9,6 @@ export interface AllowedMigrations {
 	alterPrimaryKey?: Record<string, AllowedMigrationState>;
 	removeForeignKey?: Record<string, AllowedMigrationState>;
 	alterForeignKey?: Record<string, AllowedMigrationState>;
-	continueWithoutRollback?: Record<string, AllowedMigrationState>;
 }
 
 export const NO_COLUMN = "noColumn";

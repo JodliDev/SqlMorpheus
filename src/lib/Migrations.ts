@@ -290,7 +290,6 @@ export class Migrations {
 			switch(allowedMigration) {
 				case "recreateTable":
 				case "dropTable":
-				case "continueWithoutRollback":
 				case "alterPrimaryKey":
 					throw new Error(`You cannot use the ${allowedMigration} migration with a column name. Please remove the column name.`);
 			}

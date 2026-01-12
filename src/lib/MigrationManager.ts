@@ -183,8 +183,6 @@ export class MigrationManager {
 		for(const tableName of this.existingTables) {
 			if(!this.newTables[tableName]) {
 				this.migrations.compareWithAllowedMigration(tableName, "dropTable");
-				if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-					this.migrations.compareWithAllowedMigration(tableName, "continueWithoutRollback");
 				
 				const dbTableName = this.migrations.getOldTableName(tableName);
 				
@@ -255,8 +253,6 @@ export class MigrationManager {
 				continue;
 			
 			this.migrations.compareWithAllowedMigration(tableName, "recreateTable");
-			if(!this.dialect.canInspectForeignKeys || !this.dialect.canInspectPrimaryKey)
-				this.migrations.compareWithAllowedMigration(tableName, "continueWithoutRollback");
 				
 			const oldColumnList = await this.dialect.getColumnInformation(this.migrations.getOldTableName(tableName));
 			const newColumnList = this.newTables[tableName].columns;

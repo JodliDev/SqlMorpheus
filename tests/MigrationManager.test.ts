@@ -151,9 +151,6 @@ describe("MigrationManager", () => {
 	it("should throw if not allowed", async() => {
 		//alter DatabaseInstructions:
 		mockDbInstructions.tables = [];
-		mockDbInstructions.preMigration = (migrations) => {
-			migrations.allowMigration(2, "TableA", "continueWithoutRollback"); //dropColumn is not implemented in DefaultSql
-		}
 		
 		//alter dialect:
 		mockDialect.getVersion = () => Promise.resolve(1);
