@@ -4,6 +4,7 @@ import {ColumnInfo} from "../typings/ColumnInfo";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
 
 export default class MySqlDialect extends DefaultSql {
+	public canRecreateTable: boolean = true;
 	public canAlterColumnStructure: boolean = true;
 	public canAlterForeignKeys: boolean = true;
 	public canAlterPrimaryKey: boolean = true;

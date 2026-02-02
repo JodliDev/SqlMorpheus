@@ -14,6 +14,7 @@ export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
  */
 export default abstract class DefaultSql {
 	public readonly db: DatabaseAccess;
+	public canRecreateTable: boolean = false;
 	public canAlterColumnStructure: boolean = false;
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
@@ -188,6 +189,10 @@ export default abstract class DefaultSql {
 	 */
 	public dropTable(tableName: string): string {
 		return `DROP TABLE IF EXISTS ${this.formatIdentifier(tableName)};`
+	}
+	
+	public recreateTable(tableName: string, entries: string[]): string {
+		return `DROP TABLE IF EXISTS ${this.formatIdentifier(tableName)}; ${this.createTable(tableName, entries)}`
 	}
 	
 	/**

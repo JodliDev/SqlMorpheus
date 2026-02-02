@@ -247,8 +247,12 @@ export class MigrationManager {
 		for(const tableName in migrationData) {
 			const migrationEntry = migrationData[tableName];
 			
-			if(!migrationEntry.recreate)
+			if(!migrationEntry.recreate) {
 				continue;
+			}
+			if(!this.dialect.canRecreateTable) {
+				throw new Error("SQL dialect does not support recreating tables!");
+			}
 			
 			this.migrations.compareWithAllowedMigration(tableName, "recreateTable");
 				
