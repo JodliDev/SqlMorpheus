@@ -84,13 +84,9 @@ export default abstract class DefaultSql {
 	}
 	
 	/**
-	 * Statement to enable / disable foreign keys in the database.
-	 * Is dialect specific.
-	 *
-	 * @param enabled - A boolean indicating whether to enable or disable foreign key constraints.
-	 * @return The SQL statement as a string.
+	 * Temporarily disable foreign keys and run SQL statements in a transaction
 	 */
-	public abstract changeForeignKeysState(enabled: boolean): Promise<void>;
+	public abstract runTransactionWithoutForeignKeys(query: string): Promise<void>;
 	
 	/**
 	 * Statement to add a foreign key to a specified table.

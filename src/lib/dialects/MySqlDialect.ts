@@ -42,13 +42,10 @@ export default class MySqlDialect extends DefaultSql {
 		return defaultValue ? `${typeQuery} DEFAULT ${defaultValue}` : `${typeQuery}; ALTER TABLE ${tableName} ALTER ${columnName} DROP DEFAULT;`;
 		
 	}
-	public async changeForeignKeysState(enabled: boolean): Promise<void> {
-		if(enabled) {
-			await this.db.runWriteStatement(`SET FOREIGN_KEY_CHECKS = 1;`);
-		}
-		else {
-			await this.db.runWriteStatement(`SET FOREIGN_KEY_CHECKS = 0;`);
-		}
+	public async runTransactionWithoutForeignKeys(query: string): Promise<void> {
+		await this.db.runWriteStatement("SET FOREIGN_KEY_CHECKS = 0;");
+		await this.db.runTransaction(query);
+		await this.db.runWriteStatement("SET FOREIGN_KEY_CHECKS = 1;");
 	}
 	public addForeignKey(fromTableName: string, foreignKey: string): string {
 		return `ALTER TABLE ${fromTableName} ADD ${foreignKey};`;

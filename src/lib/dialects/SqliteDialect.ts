@@ -22,16 +22,15 @@ export default class SqliteDialect extends DefaultSql {
 	public canAlterForeignKeys: boolean = false;
 	public canAlterPrimaryKey: boolean = false;
 	
-	public async changeForeignKeysState(enabled: boolean): Promise<void> {
-		if(enabled) {
-			await this.db.runWriteStatement(`PRAGMA foreign_keys = ON;`);
-			await this.db.runWriteStatement(`PRAGMA foreign_key_check;`);
-			await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = OFF;`);
-		}
-		else {
-			await this.db.runWriteStatement(`PRAGMA foreign_keys = OFF;`);
-			await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = ON;`);
-		}
+	public async runTransactionWithoutForeignKeys(query: string): Promise<void> {
+		await this.db.runWriteStatement(`PRAGMA foreign_keys = OFF;`);
+		await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = ON;`);
+		
+		await this.db.runTransaction(query);
+		
+		await this.db.runWriteStatement(`PRAGMA foreign_keys = ON;`);
+		await this.db.runWriteStatement(`PRAGMA foreign_key_check;`);
+		await this.db.runWriteStatement(`PRAGMA defer_foreign_keys = OFF;`);
 	}
 	
 	public async getTableNames(): Promise<string[]> {

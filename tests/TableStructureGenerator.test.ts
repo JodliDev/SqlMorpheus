@@ -8,6 +8,7 @@ import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
 import ForeignKeyToSelf from "../src/lib/tableInfo/decorators/ForeignKeyToSelf";
 import DataType from "../src/lib/tableInfo/decorators/DataType";
 import TableObj from "../src/lib/tableInfo/TableObj";
+import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 
 describe("TableStructureGenerator", () => {
 	class DefaultDialect extends DefaultSql {
@@ -22,10 +23,13 @@ describe("TableStructureGenerator", () => {
 			dateTime: "DATETIME",
 		};
 		
-		public changeForeignKeysState(): Promise<void> {
+		public runTransactionWithoutForeignKeys(): Promise<void> {
 			throw new Error("Method not implemented.");
 		}
 		
+		public getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
+			throw new Error("Method not implemented.");
+		}
 		getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 			return Promise.resolve({});
 		}

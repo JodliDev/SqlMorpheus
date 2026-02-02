@@ -11,7 +11,7 @@ import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
 import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations";
 
 class DefaultDialect extends DefaultSql {
-    public changeForeignKeysState(enabled: boolean): Promise<void> {
+    public runTransactionWithoutForeignKeys(): Promise<void> {
         throw new Error("Method not implemented.");
     }
 	getColumnInformation(_: string): Promise<Record<string, ColumnInfo>> {
