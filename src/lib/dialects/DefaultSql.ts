@@ -50,13 +50,13 @@ export default abstract class DefaultSql {
 		switch(type) {
 			case "text":
 			case "string":
-				return `"${value}"`;
+				return `'${value}'`;
 			case "time":
-				return `"${toDate(value).toISOString().slice(11, 19)}"`;
+				return `'${toDate(value).toISOString().slice(11, 19)}'`;
 			case "date":
-				return `"${toDate(value).toISOString().slice(0, 10)}"`;
+				return `'${toDate(value).toISOString().slice(0, 10)}'`;
 			case "dateTime":
-				return `"${toDate(value).toISOString().slice(0, 19).replace("T", " ")}"`;
+				return `'${toDate(value).toISOString().slice(0, 19).replace("T", " ")}'`;
 			default:
 				return value.toString();
 		}

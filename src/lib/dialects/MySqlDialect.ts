@@ -102,7 +102,7 @@ export default class MySqlDialect extends DefaultSql {
 				case "VARC":
 				case "DATE":
 				case "TIME":
-					info.defaultValue = entry["Default"] ? `"${entry["Default"]}"` : this.nullType;
+					info.defaultValue = entry["Default"] ? `'${entry["Default"]}'` : this.nullType;
 					break;
 				default:
 					info.defaultValue = entry["Default"] ?? this.nullType;

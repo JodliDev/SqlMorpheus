@@ -6,8 +6,8 @@ import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions";
 import { ForeignKeyInfo } from "../../src/lib/typings/ForeignKeyInfo";
 
 class TestSql extends DefaultSql {
-    public changeForeignKeysState(): Promise<void> {
-        throw new Error("changeForeignKeysState() is not implemented.");
+    public runTransactionWithoutForeignKeys(): Promise<void> {
+        throw new Error("runTransactionWithoutForeignKeys() is not implemented.");
     }
 	public getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
 		throw new Error("getForeignKeys() is not implemented.");
@@ -32,22 +32,22 @@ describe("DefaultSql", () => {
 	describe("formatValueToSql", () => {
 		it("should format string values correctly", () => {
 			const result = mockDialect.formatValueToSql("test", "string");
-			expect(result).toBe('"test"');
+			expect(result).toBe("'test'");
 		});
 		
 		it("should format date values correctly", () => {
 			const result = mockDialect.formatValueToSql(new Date("2025-07-20"), "date");
-			expect(result).toBe("\"2025-07-20\"");
+			expect(result).toBe("'2025-07-20'");
 		});
 		
 		it("should format datetime values correctly", () => {
 			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00.000Z"), "dateTime");
-			expect(result).toBe("\"2025-07-20 15:30:00\"");
+			expect(result).toBe("'2025-07-20 15:30:00'");
 		});
 		
 		it("should format time values correctly", () => {
 			const result = mockDialect.formatValueToSql(new Date("2025-07-20T15:30:00.000Z"), "time");
-			expect(result).toBe("\"15:30:00\"");
+			expect(result).toBe("'15:30:00'");
 		});
 		
 		it("should default to string conversion for unknown types", () => {

@@ -130,11 +130,11 @@ describe("TableStructureGenerator", () => {
 		expect(tableHouse.foreignKeys).toMatchObject([]);
 		expect(tableHouse.columns).toMatchObject({
 			houseId: {name: "houseId", sqlType: "BIGINT", defaultValue: "3", isPrimaryKey: true},
-			address: {name: "address", sqlType: "VARCHAR", defaultValue: '"address"', isPrimaryKey: false},
-			description: {name: "description", sqlType: "TEXT", defaultValue: '""', isPrimaryKey: false},
+			address: {name: "address", sqlType: "VARCHAR", defaultValue: "'address'", isPrimaryKey: false},
+			description: {name: "description", sqlType: "TEXT", defaultValue: "''", isPrimaryKey: false},
 			stories: {name: "stories", sqlType: "INTEGER", defaultValue: "0", isPrimaryKey: false},
 			ownerName: {name: "ownerName", sqlType: "VARCHAR", defaultValue: "NULL", isPrimaryKey: false},
-			builtAt: {name: "builtAt", sqlType: "DATETIME", defaultValue: "\"2024-04-03 02:38:00\"", isPrimaryKey: false},
+			builtAt: {name: "builtAt", sqlType: "DATETIME", defaultValue: "'2024-04-03 02:38:00'", isPrimaryKey: false},
 			inhabitants: {name: "inhabitants", sqlType: "BIGINT", defaultValue: "0", isPrimaryKey: false},
 			hasInternet: {name: "hasInternet", sqlType: "BOOLEAN", defaultValue: "true", isPrimaryKey: false},
 		});
@@ -162,9 +162,9 @@ describe("TableStructureGenerator", () => {
 			belongsTo: {name: "belongsTo", sqlType: "BIGINT", defaultValue: "1", isPrimaryKey: false},
 			isSimilarTo: {name: "isSimilarTo", sqlType: "BIGINT", defaultValue: "9", isPrimaryKey: false},
 			electric: {name: "electric", sqlType: "BOOLEAN", defaultValue: "false", isPrimaryKey: false},
-			brand: {name: "brand", sqlType: "VARCHAR", defaultValue: "\"\"", isPrimaryKey: false},
+			brand: {name: "brand", sqlType: "VARCHAR", defaultValue: "''", isPrimaryKey: false},
 			km: {name: "km", sqlType: "INTEGER", defaultValue: '10', isPrimaryKey: false},
-			lastUsed: {name: "lastUsed", sqlType: "DATE", defaultValue: "\"1989-02-01\"", isPrimaryKey: false},
+			lastUsed: {name: "lastUsed", sqlType: "DATE", defaultValue: "'1989-02-01'", isPrimaryKey: false},
 		});
 	}
 	

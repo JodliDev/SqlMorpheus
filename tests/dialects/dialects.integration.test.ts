@@ -7,6 +7,9 @@ import {MySqlContainer} from "@testcontainers/mysql";
 import {DatabaseAccess} from "../../src";
 import BetterSqlite3 from "better-sqlite3";
 import mysql from "mysql2/promise";
+import {PostgreSqlContainer} from "@testcontainers/postgresql";
+import {Client, Pool} from "pg";
+import PostgresDialect from "../../src/lib/dialects/PostgresDialect";
 
 export function createSQLiteAccess(): DatabaseAccess {
 	const db = new BetterSqlite3(":memory:");
@@ -25,7 +28,7 @@ describe.each([
 		const db = new BetterSqlite3(":memory:");
 		const dbAccess = createSQLiteAccess();
 		const sqlDialect = new SqliteDialect(dbAccess);
-		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: db.close};
+		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: () => db.close()};
 	}},
 	{type: "MySql", createDb: async () => {
 		const container = await new MySqlContainer("mysql").start();
@@ -60,7 +63,39 @@ describe.each([
 		}
 		
 		const sqlDialect = new MySqlDialect(dbAccess);
-		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: db.destroy};
+		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: () => db.destroy()};
+	}},
+	{type: "Postgres", createDb: async () => {
+		const container = await new PostgreSqlContainer("postgres").start();
+		const client = new Client({connectionString: container.getConnectionUri()});
+		await client.connect();
+		
+		const dbAccess: DatabaseAccess = {
+			runReadStatement: async (query: string) => {
+				return (await client.query(query)).rows;
+			},
+			runWriteStatement: async (query: string) => await client.query(query),
+			runTransaction: async (query: string) => {
+				const pool = new Pool({connectionString: container.getConnectionUri()});
+				const poolClient = await pool.connect();
+
+				try {
+					await poolClient.query('BEGIN');
+					await poolClient.query(query);
+					await poolClient.query('COMMIT');
+				}
+				catch (e) {
+					await poolClient.query('ROLLBACK');
+					throw e;
+				}
+				finally {
+					poolClient.release();
+				}
+			}
+		}
+
+		const sqlDialect = new PostgresDialect(dbAccess);
+		return {databaseAccess: dbAccess, sqlDialect: sqlDialect, close: () => client.end()};
 	}}
 ])("Integration Tests: $type", async ({createDb}) => {
 	const {databaseAccess, sqlDialect, close} = await createDb();
@@ -93,7 +128,6 @@ describe.each([
 			expect(tables).toEqual(["users"]);
 			
 			const tableInfo = await sqlDialect.getColumnInformation("users");
-			expect(tableInfo).to
 			expect(tableInfo).toEqual({
 				id: {name: "id", sqlType: sqlDialect.getSqlType("number"), defaultValue: sqlDialect.formatValueToSql(3, "number"), isPrimaryKey: true},
 				name: {name: "name", sqlType: sqlDialect.getSqlType("string"), defaultValue: sqlDialect.formatValueToSql("test", "string"), isPrimaryKey: false},
@@ -230,15 +264,15 @@ describe.each([
 				sqlDialect.select("test_table", ["id", "name"])
 			);
 			expect(result).toEqual([
-				{id: 1, name: "test1"},
-				{id: 2, name: "test2"}
+				{id: expect.toBeOneOf([1, "1"]), name: "test1"},
+				{id: expect.toBeOneOf([2, "2"]), name: "test2"},
 			]);
 			
 			// Test select with where clause
 			result = await databaseAccess.runReadStatement(
 				sqlDialect.select("test_table", ["id", "name"], "id = 1")
 			);
-			expect(result).toEqual([{id: 1, name: "test1"}]);
+			expect(result).toEqual([{id: expect.toBeOneOf([1, "1"]), name: "test1"}]);
 		});
 		
 		it("insert", async () => {
@@ -250,7 +284,7 @@ describe.each([
 			const result = await databaseAccess.runReadStatement(
 				sqlDialect.select("test_table", ["id", "name"])
 			);
-			expect(result).toEqual([{id: 1, name: "test"}]);
+			expect(result).toEqual([{id: expect.toBeOneOf([1, "1"]), name: "test"}]);
 		});
 	});
 	
@@ -277,6 +311,8 @@ describe.each([
 			const tables = await sqlDialect.getTableNames();
 			
 			await databaseAccess.runTransaction(
+				sqlDialect.dropTable("ChildTable") + //make sure ChildTable is removed first because of its foreign key constraint
+				sqlDialect.dropTable("ParentTable") +
 				tables.map(table => sqlDialect.dropTable(table)).join("")
 			);
 		});
@@ -296,7 +332,7 @@ describe.each([
 			const result = await databaseAccess.runReadStatement(
 				sqlDialect.select("ChildTable", ["id", "parentId", "name"])
 			);
-			expect(result).toEqual([{ id: 1, parentId: 1, name: 'Child 1' }]);
+			expect(result).toEqual([{ id: expect.toBeOneOf([1, "1"]), parentId: expect.toBeOneOf([1, "1"]), name: 'Child 1' }]);
 			
 			// Test foreign key constraint violation
 			await expect(
@@ -385,22 +421,48 @@ describe.each([
 		});
 		
 		it("should successfully disable foreign keys", async () => {
+			const parentInsertQuery = sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'Parent entry 1')"));
+			const childInsertQuery = sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (10, 2, 'Child entry 1')"));
+			const updateQuery = `UPDATE ${sqlDialect.formatIdentifier("ChildTable")} SET ${sqlDialect.formatIdentifier("parentId")} = 1`;
+			
+			databaseAccess.runTransaction(parentInsertQuery);
+			
+			// Run query that violates foreign key
+			await expect(
+				databaseAccess.runTransaction(childInsertQuery + updateQuery)
+			).rejects.toThrow();
+
+			await sqlDialect.runTransactionWithoutForeignKeys(childInsertQuery + updateQuery)
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("ChildTable", ["id", "name", "parentId"]))).toEqual([
+				{id: expect.toBeOneOf([10, "10"]), name: "Child entry 1", parentId: expect.toBeOneOf([1, "1"])},
+			]);
+		});
+		
+		it("should recreate a table without cascading", async () => {
+			if(!sqlDialect.canRecreateTable) {
+				console.log("canRecreateTable is not supported by this dialect. Skipping test.")
+				return;
+			}
+			
+			
 			//setup:
 			
 			const rootTableQuery = sqlDialect.createTable("RootTable", [
 				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
 				sqlDialect.columnDefinition("name", sqlDialect.getSqlType("text"), false, "")
 			]);
-			const rootInsertQuery = sqlDialect.insert("RootTable", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'Root entry')"));
-			const parentInsertQuery = sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (10, 'Parent entry')"));
-			const childInsertQuery = sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (100, 10, 'Child entry')"));
+			const rootInsertQuery = sqlDialect.insert("RootTable", sqlDialect.insertValues(["id", "name"], "VALUES (1, 'Root entry 1')"))
+				+ sqlDialect.insert("RootTable", sqlDialect.insertValues(["id", "name"], "VALUES (2, 'Root entry 2')"));
+			const parentInsertQuery = sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (10, 'Parent entry 1')"))
+				+ sqlDialect.insert("ParentTable", sqlDialect.insertValues(["id", "name"], "VALUES (20, 'Parent entry 2')"));
+			const childInsertQuery = sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (100, 10, 'Child entry 1')"))
+				+ sqlDialect.insert("ChildTable", sqlDialect.insertValues(["id", "parentId", "name"], "VALUES (200, 20, 'Child entry 2')"));
 			
 			await databaseAccess.runTransaction(rootTableQuery + rootInsertQuery + parentInsertQuery + childInsertQuery);
 			
 			// Change ParentTable structure by adding a column with a foreign key:
 			// (we recreate ParentTable to test if ChildTable gets cascaded):
-			
-			await sqlDialect.changeForeignKeysState(false);
 			
 			const recreateTableQuery = sqlDialect.createTable("Parent__backup", [
 				sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
@@ -408,28 +470,15 @@ describe.each([
 				sqlDialect.columnDefinition("rootId", sqlDialect.getSqlType("number"), false, "0"),
 				sqlDialect.foreignKey("rootId", "RootTable", "id", undefined, "CASCADE")
 			]);
-			const copyDataQuery = sqlDialect.insert("Parent__backup", sqlDialect.insertValues(["id", "name"], "SELECT id, name FROM ParentTable"));
-			const replaceTableQuery = "DROP TABLE IF EXISTS ParentTable; ALTER TABLE Parent__backup RENAME TO ParentTable;";
-			const updateQuery = "UPDATE ParentTable SET rootId = 1;";
+			const copyDataQuery = sqlDialect.insert("Parent__backup", sqlDialect.insertValues(["id", "name"], `SELECT id, name FROM ${sqlDialect.formatIdentifier("ParentTable")}`));
+			const replaceTableQuery = sqlDialect.dropTable("ParentTable") + sqlDialect.renameTable("Parent__backup", "ParentTable");
+			const updateQuery = `
+				UPDATE ${sqlDialect.formatIdentifier("ParentTable")} SET ${sqlDialect.formatIdentifier("rootId")} = 1 WHERE ${sqlDialect.formatIdentifier("id")} = 10;
+            	UPDATE ${sqlDialect.formatIdentifier("ParentTable")} SET ${sqlDialect.formatIdentifier("rootId")} = 2 WHERE ${sqlDialect.formatIdentifier("id")} = 20;
+			`;
+			await sqlDialect.runTransactionWithoutForeignKeys(recreateTableQuery + copyDataQuery + replaceTableQuery + updateQuery);
 			
-			await databaseAccess.runTransaction(recreateTableQuery + copyDataQuery + replaceTableQuery + updateQuery);
-			await sqlDialect.changeForeignKeysState(true);
-			
-			
-			// test:
-			// We expect that ChildTable still has all its entries (and was not cascaded)
-			// and that ParenTable has its entries even though its new foreign key constraint was not fulfilled for a second
-			
-			const rootEntries = await databaseAccess.runReadStatement("SELECT id, name FROM RootTable");
-			expect(rootEntries).toEqual([{id: 1, name: "Root entry"}]);
-			
-			const parentEntries = await databaseAccess.runReadStatement("SELECT id, name, rootId FROM ParentTable");
-			expect(parentEntries).toEqual([{id: 10, name: "Parent entry", rootId: 1}]);
-			
-			const childEntries = await databaseAccess.runReadStatement("SELECT id, name, parentId FROM ChildTable");
-			expect(childEntries).toEqual([{id: 100, name: "Child entry", parentId: 10}]);
-			
-			
+			// Make sure foreign keys are set correctly:
 			const parentForeignKeys = await sqlDialect.getForeignKeys("ParentTable");
 			expect(parentForeignKeys).toEqual([
 				{
@@ -453,6 +502,42 @@ describe.each([
 					onDelete: "CASCADE"
 				},
 			]);
+			
+			// test 1:
+			// We expect that ChildTable still has all its entries (and was not cascaded)
+			// and that ParenTable has its entries even though its new foreign key constraint was not fulfilled for a second
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("RootTable", ["id", "name"]))).toEqual([
+				{id: 1, name: "Root entry 1"},
+				{id: 2, name: "Root entry 2"}
+			]);
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("ParentTable", ["id", "name", "rootId"]))).toEqual([
+				{id: 10, name: "Parent entry 1", rootId: 1},
+				{id: 20, name: "Parent entry 2", rootId: 2}
+			]);
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("ChildTable", ["id", "name", "parentId"]))).toEqual([
+				{id: 100, name: "Child entry 1", parentId: 10},
+				{id: 200, name: "Child entry 2", parentId: 20}
+			]);
+			
+			
+			//test 2:
+			// Remove an entry in RootTable to make sure that foreign keys are reactivated and deletions are cascaded (the connected entry in ParentTable and in turn ChildTable should be removed):
+			await databaseAccess.runTransaction(`DELETE FROM ${sqlDialect.formatIdentifier("RootTable")} WHERE id = 1`);
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("RootTable", ["id", "name"]))).toEqual([
+				{id: 2, name: "Root entry 2"}
+			]);
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("ParentTable", ["id", "name", "rootId"]))).toEqual([
+				{id: 20, name: "Parent entry 2", rootId: 2}
+			]);
+			
+			expect(await databaseAccess.runReadStatement(sqlDialect.select("ChildTable", ["id", "name", "parentId"]))).toEqual([
+				{id: 200, name: "Child entry 2", parentId: 20}
+			]);
 		});
 	});
 	
@@ -471,7 +556,7 @@ describe.each([
 		it("should return the correct version", async() => {
 			expect(await sqlDialect.getVersion()).toBe(0);
 			await sqlDialect.setChanges(0, 5, {up: "", down: ""});
-			expect(await sqlDialect.getVersion()).toBe(5);
+			expect(await sqlDialect.getVersion()).toBeOneOf([5, "5"]);
 		});
 	});
 })
