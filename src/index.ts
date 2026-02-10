@@ -12,7 +12,7 @@ import {SqlChanges} from "./lib/typings/SqlChanges";
 
 export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
 	Logger.setMode(dbInstructions.loggerMode);
-	const dialect = getDialect(db, dbInstructions);
+	const dialect = getDialect(db, dbInstructions.dialect);
 	
 	const mm = new MigrationManager(dialect);
 	const migration = await mm.generateSqlChanges(dbInstructions);
@@ -21,9 +21,7 @@ export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseI
 		await dialect.setChanges(migration.fromVersion, dbInstructions.version, migration.changes);
 		
 		await db.createBackup?.(`from_${migration.fromVersion}_to_${dbInstructions.version}`);
-		await dialect.changeForeignKeysState(false);
-		await db.runTransaction(migration.changes.up);
-		await dialect.changeForeignKeysState(true);
+		await dialect.runTransactionWithoutForeignKeys(migration.changes.up);
 	}
 }
 
@@ -46,8 +44,7 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 		}
 		Logger.debug(changes.down);
 		
-		await db.runTransaction(changes.down);
-		dbInstructions.version = changes.fromVersion;
+		await sql.runTransactionWithoutForeignKeys(changes.down);
 		
 		version = changes.fromVersion;
 	}

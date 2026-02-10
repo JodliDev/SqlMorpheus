@@ -5,8 +5,8 @@ import DatabaseInstructions from "./typings/DatabaseInstructions";
 import {DatabaseAccess} from "./typings/DatabaseAccess";
 import DefaultSql from "./dialects/DefaultSql";
 
-export default function getDialect(db: DatabaseAccess, dbInstructions: DatabaseInstructions): DefaultSql {
-	switch(dbInstructions.dialect) {
+export default function getDialect(db: DatabaseAccess, dialect: DatabaseInstructions["dialect"]): DefaultSql {
+	switch(dialect) {
 		case "Sqlite":
 			return new SqliteDialect(db);
 		case "Postgres":
@@ -14,6 +14,6 @@ export default function getDialect(db: DatabaseAccess, dbInstructions: DatabaseI
 		case "MySql":
 			return new MySqlDialect(db);
 		default:
-			throw new Error(`Unknown dialect ${dbInstructions.dialect}`);
+			throw new Error(`Unknown dialect ${dialect}`);
 	}
 }
