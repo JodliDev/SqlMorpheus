@@ -11,7 +11,7 @@ interface ColumnOptions {
 }
 type DataFormat = Record<string, AllowedTypes | [AllowedTypes, ColumnOptions]>;
 type GetColumns<T> = T extends PublicTableObj<infer Item> ? Item : never;
-type PublicTableObj<T extends DataFormat> = Pick<TableObj<T>, "foreignKey">;
+type PublicTableObj<T extends DataFormat> = Pick<TableObj<T>, "foreignKey" | "sealType">;
 export type TableObjInput = PublicTableObj<DataFormat>;
 
 /**
@@ -80,6 +80,14 @@ export default class TableObj<T extends DataFormat> {
 		}
 	}
 	
+	/**
+	 * Creates a foreign key relationship between the current table and a target table.
+	 *
+	 * @param fromColumn - The column in the current table that will serve as the foreign key.
+	 * @param toTable - The target table object that the foreign key will reference.
+	 * @param toColumn - The column in the target table that the foreign key will reference.
+	 * @param options - Optional configurations for the foreign key, specifying actions on update or delete.
+	 */
 	public foreignKey<TOther extends Partial<TableObj<DataFormat>>>(
 		fromColumn: keyof T,
 		toTable: TOther,
@@ -94,6 +102,14 @@ export default class TableObj<T extends DataFormat> {
 			onUpdate: options?.onUpdate,
 			onDelete: options?.onDelete
 		});
+		return this;
+	}
+	
+	/**
+	 * An optional helper function to deal with `TS2589: Type instantiation is excessively deep and possibly infinite. when used as method parameter`
+	 * Does nothing in runtime
+	 */
+	public sealType(): TableObjInput {
 		return this;
 	}
 	
