@@ -1,6 +1,6 @@
 {
   "name": "sqlmorpheus",
-  "version": "0.2.6",
+  "version": "1.0.0",
   "author": "JodliDev",
   "keywords": [],
   "license": "MIT",
@@ -31,6 +31,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.0.13",
     "@types/pg": "^8.16.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "better-sqlite3": "^12.2.0",
     "mysql2": "^3.15.2",
     "pg": "^8.16.3",
