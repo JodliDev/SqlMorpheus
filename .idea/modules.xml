@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/sqlmigri.iml" filepath="$PROJECT_DIR$/sqlmigri.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SqlMorpheus.iml" filepath="$PROJECT_DIR$/SqlMorpheus.iml" />
     </modules>
   </component>
 </project>
