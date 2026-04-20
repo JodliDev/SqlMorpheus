@@ -1,6 +1,6 @@
 # SqlMorpheus
 
-SQLMorpheus is a standalone SQL migration tool that automatically calculates the differences between a database and a defined state and updates the database structure accordingly. It is not bundled with any ORM or limited to a specific SQL dialect or SQL library making it very flexible and easy to integrate into any (new or preexisting) project.
+SQLMorpheus is a standalone SQL migration tool that automatically calculates the differences between a database and a defined state and updates the database structure accordingly. It is not bundled with any ORM or limited to a specific SQL dialect or SQL library, making it very flexible and easy to integrate into any (new or preexisting) project.
 
 Its stand-out features are:
 - Database **changes are calculated at runtime**, allowing SqlMorpheus to be used with different database states without expecting any existing structure or having to recompile your app.
@@ -10,7 +10,7 @@ Its stand-out features are:
 
 
 ## How to install?
-To install SqlMorpheus run
+To install SqlMorpheus, run
 ```bash
 npm install sqlmorpheus
 ```
@@ -20,7 +20,7 @@ npm install sqlmorpheus
 Because SqlMorpheus relies on the framework you choose for database access, it needs a little bit more setup code. But you only need to copy & paste a few simple lines of code:
 
 ### 1. Access the database
-For SqlMorpheus to be able to access your database, you need to provide its `runMigration` call (see bellow) with an object with three callback functions: `runReadStatement()`, `runWriteStatement()` and `runTransaction()`.
+For SqlMorpheus to be able to access your database, you need to provide its `runMigration` call (see bellow) with a `dbAccess` object with three callback functions: `runReadStatement()`, `runWriteStatement()` and `runTransaction()`.
 Here is a full example for SQLite using better-sqlite3
 For other SQL types you can copy one of the provided examples (see [MySQL](/examples/DatabaseAccess_for_MySQL.md), [Postgres](/examples/DatabaseAccess_for_Postgres.md), [SQLite](/examples/DatabaseAccess_for_SQLite.md)) 
 
@@ -38,8 +38,9 @@ const dbAccess: DatabaseAccess = {
     }
 }
 ```
-
-#### Optional: `createBackup()` in DatabaseAccess
+<details>
+    <summary>Optional: `createBackup()` in DatabaseAccess.</summary>
+    
 On top of the three mandatory methods, you can also define `createBackup()`. This callback is called whenever the `version` in `DatabaseInstructions` has changed and SqlMorpheus needs to change the database. An example implementation for a backup in SQLite would be:
 
 ```typescript
@@ -50,6 +51,7 @@ const dbAccess: DatabaseAccess = {
     }
 }
 ```
+</details>
 
 
 ### 2. Define the database structure
@@ -72,8 +74,9 @@ const messagesTable = TableObj.create("Message", {
     .foreignKey("to", usersTable, "userId", {onDelete: "CASCADE"});
 ```
 
-### 3. Define the database instructions
-Now we combine everything and call `runMigration()`
+### 3. Create the database instructions and run the migration
+Now we combine everything and call `runMigration()`.
+
 Example:
 ```typescript
 const instructions: DatabaseInstructions = {
@@ -84,17 +87,26 @@ const instructions: DatabaseInstructions = {
 
 await runMigration(dbAccess, instructions); // dbAccess is defined above
 ```
+<details>
+    <summary>More information about `DatabaseInstructions`.</summary>
 
-You can define the following properties for `DatabaseInstructions`:
+#### `dialect`
+This property tells SqlMorpheus which SQL dialect your database uses.
+
+#### `tables`
+This property contains all tables that should be created in the database.
 
 #### `version`
-SqlMorpheus will only compare the database structure, when the database version is different to the version property defined in DatabaseInstructions. The version property is also used to decide which manual migrations defined in `preMigration()` should be executed.
+SqlMorpheus will only compare the database structure when the database version is different to the version property defined in DatabaseInstructions. The version property is also used to decide which manual migrations defined in `preMigration()` should be executed.
 
 #### `preMigration()`
 This method is run before database migrations (and comparisons) are executed. This is also the place where you allow specific destructive migrations or tell SqlMorpheus that you want to rename a table or column (rather than removing and adding it – which would be the default behaviour).
 
 #### `postMigration()`
 This method is run after the migration was finished. You will very rarely need it.
+
+> All properties are documented in [DatabaseInstructions](/src/lib/typings/DatabaseInstructions.ts).
+</details>
 
 ## When does SqlMorpheus check for migrations?
 SqlMorpheus will only compare the database when the [version property](#version) is different to the version saved in the database itself (or if the database has no version defined at all).
@@ -103,7 +115,7 @@ SqlMorpheus will only compare the database when the [version property](#version)
 SqlMorpheus has no way of telling if you want to rename a table / column or want to remove it and add a completely new one. To solve this, it relies on your input to tell it what to do (by default it just removes and adds a table / column).
 To tell it to rename a table / column, you call `migration.renameTable(VERSION, "OLD_TABLENAME", "NEW_TABLENAME");` in `preMigration()` ([example](/examples/example_renaming.md))
 
-## rollback your database
+## Roll back your database
 SqlMorpheus saves its changes into the database (into a table called `__sqlmorpheus_migrations`) which allows you to roll back the database to a previous state with a single command:
 
 ```typescript

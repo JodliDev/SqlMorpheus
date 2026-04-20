@@ -15,7 +15,7 @@ export default interface DatabaseInstructions {
 	/**
 	 * Usually SqlMorpheus throws an exception if it needs to execute a destructive database change and is not explicitly confirmed in
 	 * (using `allowMigration()` in `preMigration()`).
-	 * if true, no exception will be thrown and an error message will be logged to the console instead.
+	 * If true, no exception will be thrown and an error message will be logged to the console instead.
 	 */
 	doNotThrowIfNotAllowed?: boolean;
 	
