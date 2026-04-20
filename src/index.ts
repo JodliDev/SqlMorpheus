@@ -25,19 +25,27 @@ export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseI
 	}
 }
 
-export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstructions, toVersion: number): Promise<number> {
-	Logger.setMode(dbInstructions.loggerMode);
-	const dialect = getDialect(db, dbInstructions);
-	const fromVersion = await dialect.getVersion();
+/**
+ * Rolls back the database to the provided toVersion
+ * @param dbAccess - Access to the database.
+ * @param toVersion - the version to which the database should be upgraded to.
+ * @param dialect - the dialect that should be used for the database. Usually is the value defined in DatabaseInstructions
+ * @param loggerMode - defines how much should be logged to the console.
+ */
+export async function rollback(dbAccess: DatabaseAccess, toVersion: number, dialect: DatabaseInstructions["dialect"], loggerMode?: DatabaseInstructions["loggerMode"]): Promise<number> {
+	Logger.setMode(loggerMode);
+	const sql = getDialect(dbAccess, dialect);
+	const fromVersion = await sql.getVersion();
 	
-	await db.createBackup?.(`from_${fromVersion}_to_${dbInstructions.version}`);
+	// At the start of the loop, we get the history entry that got us to the current version and then use its fromVersion as current version
+	// Until the current version is smaller of the same as thw provided `toVersion`
+	await dbAccess.createBackup?.(`from_${fromVersion}_to_${toVersion}`);
 	Logger.log(`Rolling back from ${fromVersion} to ${toVersion}`);
 	let version = fromVersion;
-	await dialect.changeForeignKeysState(false);
 	while(version > toVersion) {
-		const changes = await dialect.getChanges(version);
-		if(!changes) {
-			throw new Error(`No changes found for version ${version}`);
+		const changes = await sql.getChanges(version);
+		if(!changes) { // Should never happen
+			throw new Error(`Unexpected error! No changes were found from version ${version} (fromVersion: ${fromVersion}, toVersion: ${toVersion})`);
 		}
 		else if(changes.fromVersion == version) {
 			throw new Error(`Saved changes do not change the database version (${version})`);
@@ -48,12 +56,11 @@ export async function rollback(db: DatabaseAccess, dbInstructions: DatabaseInstr
 		
 		version = changes.fromVersion;
 	}
-	await dialect.changeForeignKeysState(true);
 	
 	if(version < toVersion) {
 		Logger.warn(`There was no entry for version ${toVersion}. Rolled back to version ${version}`);
 	}
-	await dialect.rollbackHistory(version);
+	await sql.rollbackHistory(version);
 	
 	return version;
 }

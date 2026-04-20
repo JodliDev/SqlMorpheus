@@ -2,7 +2,7 @@
 
 import {describe, expect, beforeEach, it} from "vitest";
 import DatabaseInstructions, {TableInput} from "../src/lib/typings/DatabaseInstructions";
-import {runMigration, PublicMigrations, SqlChanges, DatabaseAccess} from "../src";
+import {runMigration, PublicMigrations, SqlChanges, DatabaseAccess, rollback} from "../src";
 import TableObj from "../src/lib/tableInfo/TableObj";
 import {createSQLiteAccess} from "./dialects/dialects.integration.test";
 
@@ -313,5 +313,56 @@ describe("Integration tests", () => {
 		
 		const employeeColumns = await access.runReadStatement("PRAGMA table_info(NewEmployees)");
 		expect(employeeColumns).toHaveLength(4); // id, fullName, departmentId, supervisorId
+	});
+	
+	describe("rollback", () => {
+		
+		beforeEach(() => {
+			access = createSQLiteAccess();
+		});
+		
+		it("should roll back successfully to a lower version", async () => {
+			const users = TableObj.create("Users", {
+				id: [0, {primaryKey: true}],
+				username: "",
+			});
+			const usersV2 = TableObj.create("Users", {
+				id: [0, {primaryKey: true}],
+				username: "",
+				email: ""
+			});
+			const usersV3 = TableObj.create("Users", {
+				id: [0, {primaryKey: true}],
+				username: "",
+				email: "",
+				anotherColumn: 1
+			});
+			const usersV4 = TableObj.create("Users", {
+				id: [0, {primaryKey: true}],
+				username: "",
+				email: "",
+				anotherColumn: 1,
+				yetAnotherColumn: 4
+			});
+			
+			const instructions = {dialect: "Sqlite", tables: [users] as TableInput[], version: 1} satisfies DatabaseInstructions;
+			const instructionsV2 = {dialect: "Sqlite", tables: [usersV2] as TableInput[], version: 2} satisfies DatabaseInstructions;
+			const instructionsV3 = {dialect: "Sqlite", tables: [usersV3] as TableInput[], version: 3} satisfies DatabaseInstructions;
+			const instructionsV4 = {dialect: "Sqlite", tables: [usersV4] as TableInput[], version: 4} satisfies DatabaseInstructions;
+			
+			await runMigration(access, instructions);
+			await runMigration(access, instructionsV2);
+			await runMigration(access, instructionsV3);
+			await runMigration(access, instructionsV4);
+			
+			
+			expect(await access.runReadStatement("PRAGMA table_info(Users)")).toHaveLength(5); // id, username, email, anotherColumn, yetAnotherColumn
+			
+			const result = await rollback(access, 2, "Sqlite");
+			
+			expect(await access.runReadStatement("PRAGMA table_info(Users)")).toHaveLength(3); // id, username, email
+			
+			expect(result).toBe(2);
+		});
 	});
 });
