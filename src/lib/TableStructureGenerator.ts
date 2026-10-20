@@ -1,11 +1,11 @@
-import {TableClassInterface, Class} from "./typings/TableClassInterface";
-import DatabaseInstructions from "./typings/DatabaseInstructions";
-import {TableStructure} from "./typings/TableStructure";
-import DefaultSql from "./dialects/DefaultSql";
+import {TableClassInterface, Class} from "./typings/TableClassInterface.ts";
+import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
+import {TableStructure} from "./typings/TableStructure.ts";
+import DefaultSql from "./dialects/DefaultSql.ts";
 
-import {getTableStructure} from "./tableInfo/getTableStructure";
-import {InputTableStructure} from "./typings/InputTableStructure";
-import {TableObjHelper} from "./tableInfo/TableObjHelper";
+import {getTableStructure} from "./tableInfo/getTableStructure.ts";
+import {InputTableStructure} from "./typings/InputTableStructure.ts";
+import {TableObjHelper} from "./tableInfo/TableObjHelper.ts";
 
 /**
  * Represents a generator for creating table structures based on specified database instructions

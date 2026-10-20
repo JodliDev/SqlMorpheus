@@ -1,14 +1,14 @@
 import {describe, expect, it} from "vitest";
-import TableStructureGenerator from "../src/lib/TableStructureGenerator";
-import {TableStructure} from "../src/lib/typings/TableStructure";
-import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
-import DefaultSql from "../src/lib/dialects/DefaultSql";
-import {DatabaseAccess, ForeignKey, TableClass} from "../src";
-import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
-import ForeignKeyToSelf from "../src/lib/tableInfo/decorators/ForeignKeyToSelf";
-import DataType from "../src/lib/tableInfo/decorators/DataType";
-import TableObj from "../src/lib/tableInfo/TableObj";
-import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
+import TableStructureGenerator from "../src/lib/TableStructureGenerator.ts";
+import {TableStructure} from "../src/lib/typings/TableStructure.ts";
+import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions.ts";
+import DefaultSql from "../src/lib/dialects/DefaultSql.ts";
+import {DatabaseAccess, ForeignKey, TableClass} from "../src/index.ts";
+import {ColumnInfo} from "../src/lib/typings/ColumnInfo.ts";
+import ForeignKeyToSelf from "../src/lib/tableInfo/decorators/ForeignKeyToSelf.ts";
+import DataType from "../src/lib/tableInfo/decorators/DataType.ts";
+import TableObj from "../src/lib/tableInfo/TableObj.ts";
+import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo.ts";
 
 describe("TableStructureGenerator", () => {
 	class DefaultDialect extends DefaultSql {

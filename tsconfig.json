@@ -3,10 +3,10 @@
 		"src/**/*"
 	],
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "NodeNext",
 		"target": "ESNext",
 		"declaration": true,
-		"moduleResolution": "node",
+		"moduleResolution": "NodeNext",
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"outDir": "dist",
@@ -18,7 +18,8 @@
 		"noUnusedParameters": false,
 		"erasableSyntaxOnly": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true
+		"noUncheckedSideEffectImports": true,
+		"allowImportingTsExtensions": true
 	}
 	
 }

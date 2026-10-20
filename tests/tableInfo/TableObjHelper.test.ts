@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import TableObj from "../../src/lib/tableInfo/TableObj";
-import {TableObjHelper} from "../../src/lib/tableInfo/TableObjHelper";
+import TableObj from "../../src/lib/tableInfo/TableObj.ts";
+import {TableObjHelper} from "../../src/lib/tableInfo/TableObjHelper.ts";
 
 describe("TableObjHelper", () => {
 	describe("isTableObj", () => {

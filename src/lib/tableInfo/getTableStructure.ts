@@ -1,8 +1,8 @@
-import {InputColumnInfo} from "../typings/InputColumnInfo";
-import {InputTableStructure} from "../typings/InputTableStructure";
-import {TableStructure} from "../typings/TableStructure";
-import {Class, TableClassInterface} from "../typings/TableClassInterface";
-import {TableObjHelper} from "./TableObjHelper";
+import {InputColumnInfo} from "../typings/InputColumnInfo.ts";
+import {InputTableStructure} from "../typings/InputTableStructure.ts";
+import {TableStructure} from "../typings/TableStructure.ts";
+import {Class, TableClassInterface} from "../typings/TableClassInterface.ts";
+import {TableObjHelper} from "./TableObjHelper.ts";
 
 export const TABLE_INFO_PROPERTY_NAME = Symbol("tableInfo");
 

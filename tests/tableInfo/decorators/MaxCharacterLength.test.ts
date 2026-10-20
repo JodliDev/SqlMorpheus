@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
-import MaxCharacterLength from "../../../src/lib/tableInfo/decorators/MaxCharacterLength";
+import MaxCharacterLength from "../../../src/lib/tableInfo/decorators/MaxCharacterLength.ts";
 
-import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure";
+import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure.ts";
 
 class TestClass2 {
 	id: number = 5;

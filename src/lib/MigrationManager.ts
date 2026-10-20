@@ -1,12 +1,12 @@
-import DatabaseInstructions from "./typings/DatabaseInstructions";
-import {ColumnInfo} from "./typings/ColumnInfo";
-import TableStructureGenerator from "./TableStructureGenerator";
-import {Migrations} from "./Migrations";
-import DefaultSql, {MIGRATION_DATA_TABLE_NAME} from "./dialects/DefaultSql";
-import {SqlChanges} from "./typings/SqlChanges";
-import {ForeignKeyInfo} from "./typings/ForeignKeyInfo";
-import {Logger} from "./Logger";
-import {TableStructure} from "./typings/TableStructure";
+import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
+import {ColumnInfo} from "./typings/ColumnInfo.ts";
+import TableStructureGenerator from "./TableStructureGenerator.ts";
+import {Migrations} from "./Migrations.ts";
+import DefaultSql, {MIGRATION_DATA_TABLE_NAME} from "./dialects/DefaultSql.ts";
+import {SqlChanges} from "./typings/SqlChanges.ts";
+import {ForeignKeyInfo} from "./typings/ForeignKeyInfo.ts";
+import {Logger} from "./Logger.ts";
+import {TableStructure} from "./typings/TableStructure.ts";
 
 export type MigrationOutput = {
 	fromVersion: number;

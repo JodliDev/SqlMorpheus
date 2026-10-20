@@ -1,4 +1,4 @@
-import {AllowedMigrations} from "./AllowedMigrations";
+import {AllowedMigrations} from "./AllowedMigrations.ts";
 
 export interface RenameData {
 	oldName: string;

@@ -1,6 +1,6 @@
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
-import {getInputColumnInfo} from "../getTableStructure";
+import {getInputColumnInfo} from "../getTableStructure.ts";
 
 /**
  * Decorator function to assign a max character length to a column.

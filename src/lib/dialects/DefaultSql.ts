@@ -1,9 +1,9 @@
-import {ForeignKeyInfo} from "../typings/ForeignKeyInfo";
-import {DatabaseAccess} from "../typings/DatabaseAccess";
-import {ColumnInfo} from "../typings/ColumnInfo";
-import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
-import {TableStructure} from "../typings/TableStructure";
-import {SqlChanges} from "../typings/SqlChanges";
+import {ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
+import {DatabaseAccess} from "../typings/DatabaseAccess.ts";
+import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
+import {TableStructure} from "../typings/TableStructure.ts";
+import {SqlChanges} from "../typings/SqlChanges.ts";
 import escapeString from "escape-sql-string";
 
 export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
@@ -385,8 +385,11 @@ export default abstract class DefaultSql {
 	 * @param changes
 	 */
 	public async setChanges(fromVersion: number, toVersion: number, changes: SqlChanges): Promise<void> {
-		const downChanges = escapeString(changes.down);
-		const upChanges = escapeString(changes.up);
+		//vitest and tsc (NodeNext) handle CommonJS imports differently:
+		const escapeStringFu: {(value: string): string} = escapeString.default ?? escapeString as any;
+
+		const downChanges = escapeStringFu(changes.down);
+		const upChanges = escapeStringFu(changes.up);
 		
 		const query = `${this.migrationTableQuery()} ${await this.hasChanges(toVersion)
 			? `UPDATE ${MIGRATION_DATA_TABLE_NAME}

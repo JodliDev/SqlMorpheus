@@ -1,8 +1,8 @@
 import {describe, expect, it} from 'vitest';
-import {Class} from "../../src/lib/typings/TableClassInterface";
+import {Class} from "../../src/lib/typings/TableClassInterface.ts";
 import "polyfill-symbol-metadata";
-import {getTableStructure, getTableStructureFromMetadata, TABLE_INFO_PROPERTY_NAME} from "../../src/lib/tableInfo/getTableStructure";
-import {TableStructure} from "../../src/lib/typings/TableStructure";
+import {getTableStructure, getTableStructureFromMetadata, TABLE_INFO_PROPERTY_NAME} from "../../src/lib/tableInfo/getTableStructure.ts";
+import {TableStructure} from "../../src/lib/typings/TableStructure.ts";
 
 interface BackendTable {
 	[key: symbol]: any;

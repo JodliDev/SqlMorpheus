@@ -1,7 +1,7 @@
-import {InputColumnInfo} from "../typings/InputColumnInfo";
-import {DataTypeOptions} from "./DataTypeOptions";
-import {Logger} from "../Logger";
-import TableObj from "./TableObj";
+import {InputColumnInfo} from "../typings/InputColumnInfo.ts";
+import {DataTypeOptions} from "./DataTypeOptions.ts";
+import {Logger} from "../Logger.ts";
+import TableObj from "./TableObj.ts";
 
 export type AllowedTypes = boolean | number | bigint | string | null | Date;
 

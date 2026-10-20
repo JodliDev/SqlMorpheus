@@ -1,7 +1,7 @@
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
-import {DataTypeOptions} from "../DataTypeOptions";
+import {DataTypeOptions} from "../DataTypeOptions.ts";
 
-import {getInputColumnInfo} from "../getTableStructure";
+import {getInputColumnInfo} from "../getTableStructure.ts";
 
 /**
  * Decorator function to assign a specific data type to a column.

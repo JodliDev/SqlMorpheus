@@ -1,7 +1,7 @@
-import {TableClassInterface, Class} from "../../typings/TableClassInterface";
+import {TableClassInterface, Class} from "../../typings/TableClassInterface.ts";
 import "polyfill-symbol-metadata"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
-import {ForeignKeyActions} from "../../typings/ForeignKeyInfo";
-import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure";
+import {ForeignKeyActions} from "../../typings/ForeignKeyInfo.ts";
+import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure.ts";
 
 /**
  * Decorator function to define a foreign key relationship for a database table.

@@ -1,6 +1,6 @@
 import {describe, expect, it, vi} from "vitest";
-import SqliteDialect from "../../src/lib/dialects/SqliteDialect";
-import {DatabaseAccess} from "../../src";
+import SqliteDialect from "../../src/lib/dialects/SqliteDialect.ts";
+import {DatabaseAccess} from "../../src/index.ts";
 
 describe("SqliteDialect", () => {
 	const mockAccess = {

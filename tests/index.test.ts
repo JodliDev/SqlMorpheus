@@ -1,10 +1,10 @@
 // noinspection SqlResolve
 
 import {describe, expect, beforeEach, it} from "vitest";
-import DatabaseInstructions, {TableInput} from "../src/lib/typings/DatabaseInstructions";
-import {runMigration, PublicMigrations, SqlChanges, DatabaseAccess, rollback} from "../src";
-import TableObj from "../src/lib/tableInfo/TableObj";
-import {createSQLiteAccess} from "./dialects/dialects.integration.test";
+import DatabaseInstructions, {TableInput} from "../src/lib/typings/DatabaseInstructions.ts";
+import {runMigration, PublicMigrations, SqlChanges, DatabaseAccess, rollback} from "../src/index.ts";
+import TableObj from "../src/lib/tableInfo/TableObj.ts";
+import {createSQLiteAccess} from "./dialects/dialects.integration.test.ts";
 
 describe("Integration tests", () => {
 	let access: DatabaseAccess;

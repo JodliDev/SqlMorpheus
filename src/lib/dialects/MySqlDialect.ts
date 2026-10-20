@@ -1,7 +1,7 @@
-import DefaultSql from "./DefaultSql";
-import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
-import {ColumnInfo} from "../typings/ColumnInfo";
-import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
+import DefaultSql from "./DefaultSql.ts";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
+import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
 
 export default class MySqlDialect extends DefaultSql {
 	public canRecreateTable: boolean = true;

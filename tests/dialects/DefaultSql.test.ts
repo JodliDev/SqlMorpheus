@@ -1,9 +1,9 @@
 import {describe, expect, it, vi} from "vitest";
-import DefaultSql from "../../src/lib/dialects/DefaultSql";
-import {DatabaseAccess} from "../../src";
-import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
-import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions";
-import { ForeignKeyInfo } from "../../src/lib/typings/ForeignKeyInfo";
+import DefaultSql from "../../src/lib/dialects/DefaultSql.ts";
+import { DatabaseAccess } from "../../src/index.ts";
+import {ColumnInfo} from "../../src/lib/typings/ColumnInfo.ts";
+import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions.ts";
+import { ForeignKeyInfo } from "../../src/lib/typings/ForeignKeyInfo.ts";
 
 class TestSql extends DefaultSql {
     public runTransactionWithoutForeignKeys(): Promise<void> {

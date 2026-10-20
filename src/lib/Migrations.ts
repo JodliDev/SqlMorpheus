@@ -1,9 +1,9 @@
-import MigrationInstructions from "./typings/MigrationInstructions";
-import MigrationNotAllowedException from "./exceptions/NotAllowedException";
-import DatabaseInstructions from "./typings/DatabaseInstructions";
-import {TableStructure} from "./typings/TableStructure";
-import {Logger} from "./Logger";
-import {ALLOWED, AllowedMigrations, NO_COLUMN, USED} from "./typings/AllowedMigrations";
+import MigrationInstructions from "./typings/MigrationInstructions.ts";
+import MigrationNotAllowedException from "./exceptions/NotAllowedException.ts";
+import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
+import {TableStructure} from "./typings/TableStructure.ts";
+import {Logger} from "./Logger.ts";
+import {ALLOWED, AllowedMigrations, NO_COLUMN, USED} from "./typings/AllowedMigrations.ts";
 
 export type NotAllowedChangeEntry = {
 	version: number,

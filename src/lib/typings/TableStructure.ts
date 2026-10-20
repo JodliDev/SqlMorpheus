@@ -1,5 +1,5 @@
-import {ColumnInfo} from "./ColumnInfo";
-import {ForeignKeyInfo} from "./ForeignKeyInfo";
+import {ColumnInfo} from "./ColumnInfo.ts";
+import {ForeignKeyInfo} from "./ForeignKeyInfo.ts";
 
 export interface TableStructure {
 	table: string

@@ -1,9 +1,9 @@
-import SqliteDialect from "./dialects/SqliteDialect";
-import PostgresDialect from "./dialects/PostgresDialect";
-import MySqlDialect from "./dialects/MySqlDialect";
-import DatabaseInstructions from "./typings/DatabaseInstructions";
-import {DatabaseAccess} from "./typings/DatabaseAccess";
-import DefaultSql from "./dialects/DefaultSql";
+import SqliteDialect from "./dialects/SqliteDialect.ts";
+import PostgresDialect from "./dialects/PostgresDialect.ts";
+import MySqlDialect from "./dialects/MySqlDialect.ts";
+import DatabaseInstructions from "./typings/DatabaseInstructions.ts";
+import {DatabaseAccess} from "./typings/DatabaseAccess.ts";
+import DefaultSql from "./dialects/DefaultSql.ts";
 
 export default function getDialect(db: DatabaseAccess, dialect: DatabaseInstructions["dialect"]): DefaultSql {
 	switch(dialect) {

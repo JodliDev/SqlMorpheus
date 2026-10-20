@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import DataType from "../../../src/lib/tableInfo/decorators/DataType";
-import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure";
+import DataType from "../../../src/lib/tableInfo/decorators/DataType.ts";
+import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure.ts";
 
 class TestClass2 {
 	id: number = 5;

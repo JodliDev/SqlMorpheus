@@ -1,8 +1,8 @@
 // Migrations.test.ts
 import {beforeEach, describe, expect, it} from "vitest";
-import {Migrations} from "../src/lib/Migrations";
-import {DatabaseInstructions} from "../src";
-import {ALLOWED, NO_COLUMN, USED} from "../src/lib/typings/AllowedMigrations";
+import {Migrations} from "../src/lib/Migrations.ts";
+import {DatabaseInstructions} from "../src/index.ts";
+import {ALLOWED, NO_COLUMN, USED} from "../src/lib/typings/AllowedMigrations.ts";
 
 describe("Migrations", () => {
 	let migrations: Migrations;

@@ -1,10 +1,10 @@
-import {TableClassInterface, Class} from "./TableClassInterface";
-import {PublicMigrations} from "../Migrations";
-import {SqlChanges} from "./SqlChanges";
-import {TableObjInput} from "../tableInfo/TableObj";
-import {AllowedMigrations} from "./AllowedMigrations";
-import {DatabaseAccess} from "./DatabaseAccess";
-import {LoggerMode} from "../Logger";
+import {TableClassInterface, Class} from "./TableClassInterface.ts";
+import {PublicMigrations} from "../Migrations.ts";
+import {SqlChanges} from "./SqlChanges.ts";
+import {TableObjInput} from "../tableInfo/TableObj.ts";
+import {AllowedMigrations} from "./AllowedMigrations.ts";
+import {DatabaseAccess} from "./DatabaseAccess.ts";
+import {LoggerMode} from "../Logger.ts";
 
 export type TableInput = TableObjInput | Class<TableClassInterface>;
 

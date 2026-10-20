@@ -1,14 +1,14 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {DatabaseAccess} from "../src";
-import {MigrationManager} from "../src/lib/MigrationManager";
-import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions";
-import {SqlChanges} from "../src";
-import DefaultSql from "../src/lib/dialects/DefaultSql";
-import {ColumnInfo} from "../src/lib/typings/ColumnInfo";
-import NotAllowedException from "../src/lib/exceptions/NotAllowedException";
-import TableObj from "../src/lib/tableInfo/TableObj";
-import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo";
-import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations";
+import {DatabaseAccess} from "../src/index.ts";
+import {MigrationManager} from "../src/lib/MigrationManager.ts";
+import DatabaseInstructions from "../src/lib/typings/DatabaseInstructions.ts";
+import {SqlChanges} from "../src/index.ts";
+import DefaultSql from "../src/lib/dialects/DefaultSql.ts";
+import {ColumnInfo} from "../src/lib/typings/ColumnInfo.ts";
+import NotAllowedException from "../src/lib/exceptions/NotAllowedException.ts";
+import TableObj from "../src/lib/tableInfo/TableObj.ts";
+import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo.ts";
+import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations.ts";
 
 class DefaultDialect extends DefaultSql {
     public runTransactionWithoutForeignKeys(): Promise<void> {

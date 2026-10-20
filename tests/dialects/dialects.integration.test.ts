@@ -1,15 +1,14 @@
-import {afterEach, beforeEach, describe, expect, it} from "vitest";
-import SqliteDialect from "../../src/lib/dialects/SqliteDialect";
-import {afterAll} from "@vitest/runner";
-import MySqlDialect from "../../src/lib/dialects/MySqlDialect";
-import {ColumnInfo} from "../../src/lib/typings/ColumnInfo";
+import {afterAll, afterEach, beforeEach, describe, expect, it} from "vitest";
+import SqliteDialect from "../../src/lib/dialects/SqliteDialect.ts";
+import MySqlDialect from "../../src/lib/dialects/MySqlDialect.ts";
+import {ColumnInfo} from "../../src/lib/typings/ColumnInfo.ts";
 import {MySqlContainer} from "@testcontainers/mysql";
-import {DatabaseAccess} from "../../src";
+import {DatabaseAccess} from "../../src/index.ts";
 import BetterSqlite3 from "better-sqlite3";
 import mysql from "mysql2/promise";
 import {PostgreSqlContainer} from "@testcontainers/postgresql";
 import {Client, Pool} from "pg";
-import PostgresDialect from "../../src/lib/dialects/PostgresDialect";
+import PostgresDialect from "../../src/lib/dialects/PostgresDialect.ts";
 
 export function createSQLiteAccess(): DatabaseAccess {
 	const db = new BetterSqlite3(":memory:");

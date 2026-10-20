@@ -1,8 +1,8 @@
 import {describe, expect, it} from "vitest";
-import ForeignKey from "../../../src/lib/tableInfo/decorators/ForeignKey";
-import {ForeignKeyInfo} from "../../../src/lib/typings/ForeignKeyInfo";
+import ForeignKey from "../../../src/lib/tableInfo/decorators/ForeignKey.ts";
+import {ForeignKeyInfo} from "../../../src/lib/typings/ForeignKeyInfo.ts";
 
-import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure";
+import {getTableStructure} from "../../../src/lib/tableInfo/getTableStructure.ts";
 
 class TestClass2 {
 	id: number = 5;

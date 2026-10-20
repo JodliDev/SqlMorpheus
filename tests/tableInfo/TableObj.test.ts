@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import TableObj from "../../src/lib/tableInfo/TableObj";
+import TableObj from "../../src/lib/tableInfo/TableObj.ts";
 
 describe("TableObj", () => {
 	describe("create", () => {

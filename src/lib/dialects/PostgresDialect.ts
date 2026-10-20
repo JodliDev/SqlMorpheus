@@ -1,6 +1,6 @@
-import DefaultSql from "./DefaultSql";
-import {ColumnInfo} from "../typings/ColumnInfo";
-import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
+import DefaultSql from "./DefaultSql.ts";
+import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
 
 export default class PostgresDialect extends DefaultSql {
 	public canRecreateTable: boolean = false;

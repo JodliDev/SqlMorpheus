@@ -1,8 +1,8 @@
-import DefaultSql from "./DefaultSql";
-import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo";
-import {ColumnInfo} from "../typings/ColumnInfo";
-import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
-import {SqlChanges} from "../typings/SqlChanges";
+import DefaultSql from "./DefaultSql.ts";
+import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
+import {ColumnInfo} from "../typings/ColumnInfo.ts";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
+import {SqlChanges} from "../typings/SqlChanges.ts";
 
 /**
  * SQLite-specific syntax for SQL queries

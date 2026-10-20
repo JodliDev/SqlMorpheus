@@ -1,7 +1,7 @@
-import {Class, TableClassInterface} from "../../typings/TableClassInterface";
+import {Class, TableClassInterface} from "../../typings/TableClassInterface.ts";
 import "polyfill-symbol-metadata";
-import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure";
-import {TableObjHelper} from "../TableObjHelper"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
+import {getTableStructure, getTableStructureFromMetadata} from "../getTableStructure.ts";
+import {TableObjHelper} from "../TableObjHelper.ts"; //Temporary fix. See https://github.com/daomtthuan/polyfill-symbol-metadata#readme
 
 /**
  * Decorator function to configure a database table with its name and primary key.

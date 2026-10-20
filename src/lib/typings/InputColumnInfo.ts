@@ -1,5 +1,5 @@
-import {ColumnInfo} from "./ColumnInfo";
-import {DataTypeOptions} from "../tableInfo/DataTypeOptions";
+import {ColumnInfo} from "./ColumnInfo.ts";
+import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
 
 export interface InputColumnInfo extends ColumnInfo {
 	inputType?: DataTypeOptions

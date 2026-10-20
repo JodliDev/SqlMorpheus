@@ -1,8 +1,8 @@
-import {ForeignKeyActions} from "../typings/ForeignKeyInfo";
-import {DataTypeOptions} from "./DataTypeOptions";
-import {InputTableStructure} from "../typings/InputTableStructure";
-import {InputColumnInfo} from "../typings/InputColumnInfo";
-import {AllowedTypes, TableObjHelper} from "./TableObjHelper";
+import {ForeignKeyActions} from "../typings/ForeignKeyInfo.ts";
+import {DataTypeOptions} from "./DataTypeOptions.ts";
+import {InputTableStructure} from "../typings/InputTableStructure.ts";
+import {InputColumnInfo} from "../typings/InputColumnInfo.ts";
+import {AllowedTypes, TableObjHelper} from "./TableObjHelper.ts";
 
 interface ColumnOptions {
 	primaryKey?: boolean;
