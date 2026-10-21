@@ -20,8 +20,8 @@
     "/dist"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "build_and_publish": "npm run build && npm publish"
@@ -36,8 +36,8 @@
     "better-sqlite3": "^13.0.3",
     "mysql2": "^3.24.6",
     "pg": "^8.23.1",
-    "tsup": "^9.0.0",
-    "typescript": "^7.0.2",
+    "tsdown": "^0.23.1",
+    "typescript": "^6.0.3",
     "vite": "^7.3.7",
     "vitest": "^5.0.5"
   },

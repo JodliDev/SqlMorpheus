@@ -1,14 +1,14 @@
 import {MigrationManager} from "./lib/MigrationManager.ts";
-import {DatabaseAccess} from "./lib/typings/DatabaseAccess.ts";
-import DatabaseInstructions from "./lib/typings/DatabaseInstructions.ts";
+import {type DatabaseAccess} from "./lib/typings/DatabaseAccess.ts";
+import type DatabaseInstructions from "./lib/typings/DatabaseInstructions.ts";
 import {Logger} from "./lib/Logger.ts";
 import TableClass from "./lib/tableInfo/decorators/TableClass.ts";
 import TableObj from "./lib/tableInfo/TableObj.ts";
 import DataType from "./lib/tableInfo/decorators/DataType.ts";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey.ts";
 import getDialect from "./lib/getDialect.ts";
-import {PublicMigrations} from "./lib/Migrations.ts";
-import {SqlChanges} from "./lib/typings/SqlChanges.ts";
+import {type PublicMigrations} from "./lib/Migrations.ts";
+import {type SqlChanges} from "./lib/typings/SqlChanges.ts";
 
 export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
 	Logger.setMode(dbInstructions.loggerMode);
