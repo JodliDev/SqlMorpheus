@@ -18,10 +18,9 @@ export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseI
 	const migration = await mm.generateSqlChanges(dbInstructions);
 	
 	if(migration) {
-		await dialect.setChanges(migration.fromVersion, dbInstructions.version, migration.changes);
-		
 		await db.createBackup?.(`from_${migration.fromVersion}_to_${dbInstructions.version}`);
 		await dialect.runTransactionWithoutForeignKeys(migration.changes.up);
+		await dialect.setChanges(migration.fromVersion, dbInstructions.version, migration.changes);
 	}
 }
 
