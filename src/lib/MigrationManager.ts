@@ -7,6 +7,7 @@ import {SqlChanges} from "./typings/SqlChanges.ts";
 import {ForeignKeyInfo} from "./typings/ForeignKeyInfo.ts";
 import {Logger} from "./Logger.ts";
 import {TableStructure} from "./typings/TableStructure.ts";
+import {IndexInfo} from "./typings/IndexInfo.ts";
 
 export type MigrationOutput = {
 	fromVersion: number;
@@ -97,13 +98,23 @@ export class MigrationManager {
 				.filter(oldTableName => oldTableName != MIGRATION_DATA_TABLE_NAME)
 				.map(oldTableName => this.migrations.getNewestTableName(oldTableName));
 			
+			const renameTablesChanges = this.renameTables();
+			const createAndDropTablesChanges = await this.createAndDropTables();
+			const foreignKeyChanges = await this.migrateForeignKeys();
+			const columnChanges = await this.migrateColumns();
+			const renameColumnsChanges = this.renameColumns();
+			const indexChanges = await this.migrateIndexes(); //needs to know which tables will be recreated
+			const recreateTablesChanges = await this.recreateTables();
+			
 			[
-				this.renameTables(),
-				await this.createAndDropTables(),
-				await this.migrateForeignKeys(),
-				await this.migrateColumns(),
-				this.renameColumns(),
-				await this.recreateTables()
+				renameTablesChanges,
+				createAndDropTablesChanges,
+				indexChanges.dropped, //indexes need to be dropped before their columns are removed
+				foreignKeyChanges,
+				columnChanges,
+				renameColumnsChanges,
+				indexChanges.created, //indexes need to be created after their columns were added or renamed
+				recreateTablesChanges
 			].forEach(entry => {
 				changes.up += entry.up;
 				changes.down += entry.down;
@@ -176,6 +187,7 @@ export class MigrationManager {
 			if(this.tableDoesNotExists(tableName)) {
 				const structure = this.newTables[tableName];
 				changes.up += `${this.createTableSql(tableName, structure.columns, structure.foreignKeys)}\n`;
+				changes.up += this.createIndexesSql(tableName, structure.indexes);
 				changes.down += `${this.dialect.dropTable(tableName)}\n`;
 			}
 		}
@@ -187,7 +199,9 @@ export class MigrationManager {
 				const dbTableName = this.migrations.getOldTableName(tableName);
 				
 				changes.up += `${this.dialect.dropTable(tableName)}\n`;
-				changes.down += this.createTableSql(tableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName));
+				changes.down += this.createTableSql(tableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName))
+					+ "\n"
+					+ this.createIndexesSql(tableName, await this.dialect.getIndexes(dbTableName));
 			}
 		}
 		
@@ -220,6 +234,17 @@ export class MigrationManager {
 			}
 		}
 		return this.dialect.createTable(tableName, queryLines);
+	}
+	
+	/**
+	 * Generates an SQL string to create all provided indexes on a table.
+	 *
+	 * @param tableName - The name of the table the indexes belong to.
+	 * @param indexes - The index definitions.
+	 * @return The SQL string to create the indexes (one statement per line).
+	 */
+	private createIndexesSql(tableName: string, indexes?: IndexInfo[]): string {
+		return (indexes ?? []).map(index => `${this.dialect.createIndex(tableName, index)}\n`).join("");
 	}
 	
 	/**
@@ -275,16 +300,21 @@ export class MigrationManager {
 				+ "\n"
 				+ this.dialect.renameTable(backupTableName, tableName);
 			
+			//Indexes are dropped together with the original table, so they need to be recreated:
 			const structure = this.newTables[tableName];
 			changes.up += this.createTableSql(backupTableName, structure.columns, structure.foreignKeys)
 				+ "\n"
 				+ moveDataQuery
-				+ "\n\n"
+				+ "\n"
+				+ this.createIndexesSql(tableName, structure.indexes)
+				+ "\n"
 			
 			const dbTableName = this.migrations.getOldTableName(tableName);
 			changes.down += this.createTableSql(backupTableName, await this.dialect.getColumnInformation(dbTableName), await this.dialect.getForeignKeys(dbTableName))
 				+ "\n"
-				+ moveDataQuery;
+				+ moveDataQuery
+				+ "\n"
+				+ this.createIndexesSql(tableName, await this.dialect.getIndexes(dbTableName));
 		}
 		
 		return changes;
@@ -466,6 +496,93 @@ export class MigrationManager {
 		}
 		
 		return changes;
+	}
+	
+	/**
+	 * Compares the indexes of all existing tables with their new definitions.
+	 * Indexes that are removed or changed have to be allowed (using "dropIndex").
+	 * Indexes of tables that will be recreated are only checked, their SQL is generated in {@link recreateTables()}.
+	 *
+	 * @return SQL changes to drop indexes (needs to run before columns are migrated)
+	 * and to create indexes (needs to run after columns were migrated and renamed).
+	 */
+	private async migrateIndexes(): Promise<{dropped: SqlChanges, created: SqlChanges}> {
+		const dropped = {
+			up: "\n\n-- Drop indexes\n",
+			down: "\n\n-- Drop indexes\n"
+		} satisfies SqlChanges;
+		const created = {
+			up: "\n\n-- Create indexes\n",
+			down: "\n\n-- Create indexes\n"
+		} satisfies SqlChanges;
+		
+		for(const tableName in this.newTables) {
+			if(this.tableDoesNotExists(tableName))
+				continue;
+			
+			const dbTableName = this.migrations.getOldTableName(tableName);
+			const newIndexes = this.newTables[tableName].indexes ?? [];
+			const oldIndexes = await this.dialect.getIndexes(dbTableName);
+			
+			const isSameIndex = (oldIndex: IndexInfo, newIndex: IndexInfo) =>
+				oldIndex.isUnique == newIndex.isUnique
+				&& oldIndex.columns.length == newIndex.columns.length
+				&& oldIndex.columns.every((column, i) => this.migrations.getNewestColumnName(tableName, column) == newIndex.columns[i]);
+			
+			const indexesToDrop: IndexInfo[] = [];
+			const indexesToCreate: IndexInfo[] = [];
+			const addedIndexes = newIndexes.filter(newIndex => !oldIndexes.some(oldIndex => oldIndex.name == newIndex.name));
+			
+			for(const oldIndex of oldIndexes) {
+				const newIndex = newIndexes.find(entry => entry.name == oldIndex.name);
+				
+				if(newIndex) {
+					if(isSameIndex(oldIndex, newIndex))
+						continue;
+					
+					//Check for altered index:
+					Logger.log(`Index ${oldIndex.name} in ${tableName} will be changed!`);
+					this.migrations.compareWithAllowedMigration(tableName, "dropIndex", oldIndex.name);
+					indexesToCreate.push(newIndex);
+				}
+				else {
+					//Check for renamed index (e.g., because its table was renamed):
+					const renamedIndex = addedIndexes.find(entry => isSameIndex(oldIndex, entry));
+					if(renamedIndex) {
+						Logger.log(`Index ${oldIndex.name} in ${tableName} will be renamed to ${renamedIndex.name}!`);
+						addedIndexes.splice(addedIndexes.indexOf(renamedIndex), 1);
+						indexesToCreate.push(renamedIndex);
+					}
+					else {
+						//Check for removed index:
+						Logger.log(`Index ${oldIndex.name} in ${tableName} will be removed!`);
+						this.migrations.compareWithAllowedMigration(tableName, "dropIndex", oldIndex.name);
+					}
+				}
+				indexesToDrop.push(oldIndex);
+			}
+			
+			//Check for new indexes:
+			for(const newIndex of addedIndexes) {
+				Logger.log(`Index ${newIndex.name} in ${tableName} will be added!`);
+				indexesToCreate.push(newIndex);
+			}
+			
+			if(this.migrations.willBeRecreated(tableName))
+				continue;
+			
+			//In down, tables and columns have their old names again when indexes are handled:
+			for(const index of indexesToDrop) {
+				dropped.up += `${this.dialect.dropIndex(tableName, index.name)}\n`;
+				created.down += `${this.dialect.createIndex(dbTableName, index)}\n`;
+			}
+			for(const index of indexesToCreate) {
+				created.up += `${this.dialect.createIndex(tableName, index)}\n`;
+				dropped.down += `${this.dialect.dropIndex(dbTableName, index.name)}\n`;
+			}
+		}
+		
+		return {dropped: dropped, created: created};
 	}
 	
 	/**

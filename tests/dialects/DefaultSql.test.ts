@@ -4,6 +4,7 @@ import { DatabaseAccess } from "../../src/index.ts";
 import {ColumnInfo} from "../../src/lib/typings/ColumnInfo.ts";
 import {DataTypeOptions} from "../../src/lib/tableInfo/DataTypeOptions.ts";
 import { ForeignKeyInfo } from "../../src/lib/typings/ForeignKeyInfo.ts";
+import {IndexInfo} from "../../src/lib/typings/IndexInfo.ts";
 
 class TestSql extends DefaultSql {
     public runTransactionWithoutForeignKeys(): Promise<void> {
@@ -11,6 +12,9 @@ class TestSql extends DefaultSql {
     }
 	public getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
 		throw new Error("getForeignKeys() is not implemented.");
+	}
+	public getIndexes(tableName: string): Promise<IndexInfo[]> {
+		throw new Error("getIndexes() is not implemented.");
 	}
 	public override async getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {
 		return {};

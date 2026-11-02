@@ -9,6 +9,7 @@ import ForeignKeyToSelf from "../src/lib/tableInfo/decorators/ForeignKeyToSelf.t
 import DataType from "../src/lib/tableInfo/decorators/DataType.ts";
 import TableObj from "../src/lib/tableInfo/TableObj.ts";
 import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo.ts";
+import {IndexInfo} from "../src/lib/typings/IndexInfo.ts";
 
 describe("TableStructureGenerator", () => {
 	class DefaultDialect extends DefaultSql {
@@ -28,6 +29,9 @@ describe("TableStructureGenerator", () => {
 		}
 		
 		public getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
+			throw new Error("Method not implemented.");
+		}
+		public getIndexes(tableName: string): Promise<IndexInfo[]> {
 			throw new Error("Method not implemented.");
 		}
 		getColumnInformation(tableName: string): Promise<Record<string, ColumnInfo>> {

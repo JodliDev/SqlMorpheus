@@ -1,5 +1,5 @@
 ```typescript
-import {TableClass, ForeignKey} from "sqlmorpheus";
+import {TableClass, ForeignKey, Index} from "sqlmorpheus";
 
 @TableClass("User", "userId")
 class UserTable {
@@ -12,6 +12,7 @@ class UserTable {
 }
 
 @TableClass("Message", "messageId")
+@Index<MessageTable>(["from", "to"])
 class MessageTable {
 	messageId: number = 0;
 	

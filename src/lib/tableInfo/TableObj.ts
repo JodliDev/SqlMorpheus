@@ -11,7 +11,7 @@ interface ColumnOptions {
 }
 type DataFormat = Record<string, AllowedTypes | [AllowedTypes, ColumnOptions]>;
 type GetColumns<T> = T extends PublicTableObj<infer Item> ? Item : never;
-type PublicTableObj<T extends DataFormat> = Pick<TableObj<T>, "foreignKey" | "sealType">;
+type PublicTableObj<T extends DataFormat> = Pick<TableObj<T>, "foreignKey" | "index" | "sealType">;
 export type TableObjInput = PublicTableObj<DataFormat>;
 
 /**
@@ -28,6 +28,7 @@ export default class TableObj<T extends DataFormat> {
 		primaryKey: undefined,
 		columns: {},
 		foreignKeys: [],
+		indexes: [],
 	};
 	
 	private constructor(tableName: string, defaultValues: T) {
@@ -101,6 +102,25 @@ export default class TableObj<T extends DataFormat> {
 			toColumn: toColumn.toString(),
 			onUpdate: options?.onUpdate,
 			onDelete: options?.onDelete
+		});
+		return this;
+	}
+	
+	/**
+	 * Creates an index on one or more columns of the current table.
+	 *
+	 * @param columns - The columns that will be part of the index (in order).
+	 * @param options - Optional configurations for the index.
+	 * If no name is provided, the name is generated from the table and column names.
+	 */
+	public index(
+		columns: (keyof T)[],
+		options?: {name?: string, unique?: boolean}
+	): PublicTableObj<T> {
+		this.tableStructure.indexes!.push({
+			name: options?.name,
+			columns: columns.map(column => column.toString()),
+			isUnique: !!options?.unique,
 		});
 		return this;
 	}

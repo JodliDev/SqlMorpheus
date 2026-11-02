@@ -14,5 +14,6 @@ const messagesTable = TableObj.create("Message", {
     content: ""
 })
 	.foreignKey("from", usersTable, "userId", {onDelete: "CASCADE"})
-	.foreignKey("to", usersTable, "userId", {onDelete: "CASCADE"});
+	.foreignKey("to", usersTable, "userId", {onDelete: "CASCADE"})
+	.index(["from", "to"]);
 ```

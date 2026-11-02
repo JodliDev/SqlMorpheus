@@ -1,6 +1,7 @@
 import DefaultSql from "./DefaultSql.ts";
 import {ColumnInfo} from "../typings/ColumnInfo.ts";
 import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
+import {IndexInfo} from "../typings/IndexInfo.ts";
 
 export default class PostgresDialect extends DefaultSql {
 	public canRecreateTable: boolean = false;
@@ -86,6 +87,21 @@ export default class PostgresDialect extends DefaultSql {
 		return `ALTER TABLE ${tableName} DROP CONSTRAINT ${columnName};\n`;
 	}
 	
+	
+	public async getIndexes(tableName: string): Promise<IndexInfo[]> {
+		//Skips indexes that belong to a constraint (primary keys, unique constraints, ...)
+		const data = await this.db.runReadStatement(`SELECT i.relname AS index_name, ix.indisunique AS is_unique, a.attname AS column_name
+			FROM pg_index AS ix
+				JOIN pg_class AS t ON t.oid = ix.indrelid
+				JOIN pg_class AS i ON i.oid = ix.indexrelid
+				JOIN pg_namespace AS n ON n.oid = t.relnamespace
+				JOIN pg_attribute AS a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
+			WHERE n.nspname = 'public' AND t.relname = '${tableName}' AND NOT ix.indisprimary
+				AND NOT EXISTS (SELECT 1 FROM pg_constraint AS c WHERE c.conindid = ix.indexrelid)
+			ORDER BY i.relname, array_position(ix.indkey::int2[], a.attnum);`
+		);
+		return this.rowsToIndexInfo(data as {index_name: string, is_unique: boolean, column_name: string}[]);
+	}
 	
 	public async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
 		const data = await this.db.runReadStatement(`SELECT

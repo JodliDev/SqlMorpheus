@@ -3,6 +3,7 @@ import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
 import {ColumnInfo} from "../typings/ColumnInfo.ts";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
 import {SqlChanges} from "../typings/SqlChanges.ts";
+import {IndexInfo} from "../typings/IndexInfo.ts";
 
 /**
  * SQLite-specific syntax for SQL queries
@@ -86,6 +87,16 @@ export default class SqliteDialect extends DefaultSql {
 				onDelete: (entry["on_delete"] ?? "NO ACTION") as ForeignKeyActions,
 			}
 		});
+	}
+	
+	public async getIndexes(tableName: string): Promise<IndexInfo[]> {
+		//origin "c" means the index was created with CREATE INDEX (instead of automatically for a PRIMARY KEY or UNIQUE constraint)
+		const data = await this.db.runReadStatement(`SELECT il.name AS index_name, il."unique" AS is_unique, ii.name AS column_name
+			FROM pragma_index_list('${tableName}') AS il JOIN pragma_index_info(il.name) AS ii
+			WHERE il.origin = 'c'
+			ORDER BY il.name, ii.seqno;`
+		);
+		return this.rowsToIndexInfo(data as {index_name: string, is_unique: number, column_name: string}[]);
 	}
 	
 	public async setChanges(fromVersion: number, toVersion: number, changes: SqlChanges): Promise<void> {

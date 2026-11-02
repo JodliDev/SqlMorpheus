@@ -2,6 +2,7 @@ import DefaultSql from "./DefaultSql.ts";
 import {ForeignKeyActions, ForeignKeyInfo} from "../typings/ForeignKeyInfo.ts";
 import {ColumnInfo} from "../typings/ColumnInfo.ts";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
+import {IndexInfo} from "../typings/IndexInfo.ts";
 
 export default class MySqlDialect extends DefaultSql {
 	public canRecreateTable: boolean = true;
@@ -78,6 +79,25 @@ export default class MySqlDialect extends DefaultSql {
 				onDelete: entry["DELETE_RULE"] as ForeignKeyActions
 			}
 		});
+	}
+	
+	public dropIndex(tableName: string, indexName: string): string {
+		return `DROP INDEX ${this.formatIdentifier(indexName)} ON ${this.formatIdentifier(tableName)};`;
+	}
+	
+	public async getIndexes(tableName: string): Promise<IndexInfo[]> {
+		//MySQL automatically creates indexes for foreign keys (named after the constraint or the column), which we need to skip
+		const data = await this.db.runReadStatement(`SELECT s.INDEX_NAME AS index_name, s.NON_UNIQUE = 0 AS is_unique, s.COLUMN_NAME AS column_name
+			FROM information_schema.STATISTICS AS s
+			WHERE s.TABLE_SCHEMA = (SELECT DATABASE()) AND s.TABLE_NAME = '${tableName}' AND s.INDEX_NAME <> 'PRIMARY'
+				AND NOT EXISTS (
+					SELECT 1 FROM information_schema.KEY_COLUMN_USAGE AS k
+					WHERE k.TABLE_SCHEMA = s.TABLE_SCHEMA AND k.TABLE_NAME = s.TABLE_NAME AND k.REFERENCED_TABLE_NAME IS NOT NULL
+						AND (k.CONSTRAINT_NAME = s.INDEX_NAME OR k.COLUMN_NAME = s.INDEX_NAME)
+				)
+			ORDER BY s.INDEX_NAME, s.SEQ_IN_INDEX;`
+		);
+		return this.rowsToIndexInfo(data as {index_name: string, is_unique: number, column_name: string}[]);
 	}
 	
 	public async getTableNames(): Promise<string[]> {

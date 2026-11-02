@@ -236,6 +236,45 @@ describe.each([
 		});
 	});
 	
+	describe("Index operations", () => {
+		beforeEach(async() => {
+			await databaseAccess.runTransaction(
+				sqlDialect.createTable("IndexParent", [
+					sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+				])
+				+ sqlDialect.createTable("IndexTable", [
+					sqlDialect.columnDefinition("id", sqlDialect.getSqlType("number"), true, "0"),
+					sqlDialect.columnDefinition("parentId", sqlDialect.getSqlType("number"), false, "0"),
+					sqlDialect.columnDefinition("name", sqlDialect.getSqlType("string", {maxLength: 50} as ColumnInfo), false),
+					sqlDialect.columnDefinition("age", sqlDialect.getSqlType("number"), false, "0"),
+					sqlDialect.foreignKey("parentId", "IndexParent", "id"),
+				])
+			);
+		});
+		afterEach(async() => {
+			await databaseAccess.runTransaction(sqlDialect.dropTable("IndexTable") + sqlDialect.dropTable("IndexParent"));
+		});
+
+		it("should create, read and drop indexes", async() => {
+			// automatically created indexes (primary key, foreign key) should be ignored:
+			expect(await sqlDialect.getIndexes("IndexTable")).toEqual([]);
+
+			await databaseAccess.runTransaction(
+				sqlDialect.createIndex("IndexTable", {name: "IndexTable_name_age_idx", columns: ["name", "age"], isUnique: true})
+				+ sqlDialect.createIndex("IndexTable", {name: "IndexTable_age_idx", columns: ["age"], isUnique: false})
+			);
+			expect(await sqlDialect.getIndexes("IndexTable")).toEqual([
+				{name: "IndexTable_age_idx", columns: ["age"], isUnique: false},
+				{name: "IndexTable_name_age_idx", columns: ["name", "age"], isUnique: true},
+			]);
+
+			await databaseAccess.runTransaction(sqlDialect.dropIndex("IndexTable", "IndexTable_name_age_idx"));
+			expect(await sqlDialect.getIndexes("IndexTable")).toEqual([
+				{name: "IndexTable_age_idx", columns: ["age"], isUnique: false},
+			]);
+		});
+	});
+
 	describe("Query Operations", () => {
 		beforeEach(async () => {
 			await databaseAccess.runTransaction(

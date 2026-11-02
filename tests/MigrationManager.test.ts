@@ -9,6 +9,7 @@ import NotAllowedException from "../src/lib/exceptions/NotAllowedException.ts";
 import TableObj from "../src/lib/tableInfo/TableObj.ts";
 import {ForeignKeyInfo} from "../src/lib/typings/ForeignKeyInfo.ts";
 import {NO_COLUMN} from "../src/lib/typings/AllowedMigrations.ts";
+import {IndexInfo} from "../src/lib/typings/IndexInfo.ts";
 
 class DefaultDialect extends DefaultSql {
     public runTransactionWithoutForeignKeys(): Promise<void> {
@@ -23,6 +24,10 @@ class DefaultDialect extends DefaultSql {
 	}
 	
 	async getForeignKeys(): Promise<ForeignKeyInfo[]> {
+		return Promise.resolve([]);
+	}
+	
+	async getIndexes(): Promise<IndexInfo[]> {
 		return Promise.resolve([]);
 	}
 }

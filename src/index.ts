@@ -6,6 +6,7 @@ import TableClass from "./lib/tableInfo/decorators/TableClass.ts";
 import TableObj from "./lib/tableInfo/TableObj.ts";
 import DataType from "./lib/tableInfo/decorators/DataType.ts";
 import ForeignKey from "./lib/tableInfo/decorators/ForeignKey.ts";
+import Index from "./lib/tableInfo/decorators/Index.ts";
 import getDialect from "./lib/getDialect.ts";
 import {type PublicMigrations} from "./lib/Migrations.ts";
 import {type SqlChanges} from "./lib/typings/SqlChanges.ts";
@@ -74,6 +75,7 @@ export async function rollback(dbAccess: DatabaseAccess, toVersion: number, dial
 export {
 	DataType,
 	ForeignKey,
+	Index,
 	TableClass,
 	TableObj,
 	DatabaseAccess,

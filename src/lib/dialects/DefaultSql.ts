@@ -4,6 +4,7 @@ import {ColumnInfo} from "../typings/ColumnInfo.ts";
 import {DataTypeOptions} from "../tableInfo/DataTypeOptions.ts";
 import {TableStructure} from "../typings/TableStructure.ts";
 import {SqlChanges} from "../typings/SqlChanges.ts";
+import {IndexInfo} from "../typings/IndexInfo.ts";
 import escapeString from "escape-sql-string";
 
 export const MIGRATION_DATA_TABLE_NAME = "__sqlmorpheus_migrations";
@@ -244,6 +245,28 @@ export default abstract class DefaultSql {
 	}
 	
 	/**
+	 * Statement to create an index on a specified table.
+	 *
+	 * @param tableName - The name of the table on which the index will be created.
+	 * @param index - The index definition.
+	 * @return The SQL statement as a string.
+	 */
+	public createIndex(tableName: string, index: IndexInfo): string {
+		return `CREATE ${index.isUnique ? "UNIQUE " : ""}INDEX ${this.formatIdentifier(index.name)} ON ${this.formatIdentifier(tableName)} (${index.columns.map(column => this.formatIdentifier(column)).join(", ")});`;
+	}
+	
+	/**
+	 * Statement to drop an index from a specified table.
+	 *
+	 * @param tableName - The name of the table the index belongs to.
+	 * @param indexName - The name of the index to be dropped.
+	 * @return The SQL statement as a string.
+	 */
+	public dropIndex(tableName: string, indexName: string): string {
+		return `DROP INDEX ${this.formatIdentifier(indexName)};`;
+	}
+	
+	/**
 	 * Statement to return data from a table.
 	 *
 	 * @param tableName - The name of the database table to select data from.
@@ -318,6 +341,32 @@ export default abstract class DefaultSql {
 	 * @return {Promise<ForeignKeyInfo[]>} A promise that resolves to an array of {@link ForeignKeyInfo}.
 	 */
 	public abstract getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]>;
+	
+	/**
+	 * Fetches the indexes for the specified table.
+	 * Indexes that are created automatically by the database (e.g., for primary keys or foreign keys) are not included.
+	 *
+	 * @param tableName - The name of the table for which to retrieve index information.
+	 * @return A promise that resolves to an array of {@link IndexInfo}.
+	 */
+	public abstract getIndexes(tableName: string): Promise<IndexInfo[]>;
+	
+	/**
+	 * Combines rows (one row per indexed column, ordered by index name and column position) into a list of {@link IndexInfo}.
+	 *
+	 * @param rows - Rows containing the index name, whether the index is unique and the column name.
+	 * @return An array of {@link IndexInfo}.
+	 */
+	protected rowsToIndexInfo(rows: {index_name: string, is_unique: unknown, column_name: string}[]): IndexInfo[] {
+		const indexes: Record<string, IndexInfo> = {};
+		for(const row of rows) {
+			if(!indexes[row.index_name]) {
+				indexes[row.index_name] = {name: row.index_name, columns: [], isUnique: !!Number(row.is_unique)};
+			}
+			indexes[row.index_name].columns.push(row.column_name);
+		}
+		return Object.values(indexes);
+	}
 	
 	/**
 	 * Ensures that the migration table exists in the database.

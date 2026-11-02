@@ -158,6 +158,7 @@ export class Migrations {
 	 * @param tableName - The name of the table to check the migration against.
 	 * @param type - The type of destructive migration being checked.
 	 * @param column - The column name for which the migration is allowed. Only needed for "dropColumn", "removeForeignKey" and "alterForeignKey".
+	 * For "dropIndex", the index name is used instead.
 	 */
 	public compareWithAllowedMigration(tableName: string, type: keyof AllowedMigrations, column: string = NO_COLUMN): void {
 		const migrationEntry = this.migrationData[tableName];
@@ -272,6 +273,7 @@ export class Migrations {
 	 * @param tableName - The current table name in the database at the time of the migration version.
 	 * @param allowedMigration - The keys representing the migrations to be allowed.
 	 * @param column - The column name for which the migration is allowed. Only needed for "dropColumn", "removeForeignKey" and "alterForeignKey".
+	 * For "dropIndex", provide the index name instead.
 	 *
 	 * @throws Error if the provided column name is not valid for the specified migration.
 	 */
@@ -300,6 +302,8 @@ export class Migrations {
 				case "removeForeignKey":
 				case "alterForeignKey":
 					throw new Error(`The ${allowedMigration} migration requires a column name. Please provide one.`);
+				case "dropIndex":
+					throw new Error(`The ${allowedMigration} migration requires an index name. Please provide one.`);
 			}
 		}
 	}
