@@ -10,6 +10,13 @@ import getDialect from "./lib/getDialect.ts";
 import {type PublicMigrations} from "./lib/Migrations.ts";
 import {type SqlChanges} from "./lib/typings/SqlChanges.ts";
 
+/**
+ * Executes a database migration based on the provided database connection and migration instructions.
+ *
+ * @param db - The database access object used to interact with the database.
+ * @param dbInstructions - The migration instructions, including target version, logger mode, and dialect.
+ * @return A promise that resolves when the migration process is successfully completed.
+ */
 export async function runMigration(db: DatabaseAccess, dbInstructions: DatabaseInstructions) {
 	Logger.setMode(dbInstructions.loggerMode);
 	const dialect = getDialect(db, dbInstructions.dialect);
